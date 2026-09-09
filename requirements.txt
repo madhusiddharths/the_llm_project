@@ -1,0 +1,55 @@
+# Local (macOS / Apple Silicon) dependency set.
+#
+# Per tool-router-ladder-plan.md §7, this machine does NOT train. It runs:
+# data prep and catalog construction, the teacher-forced evaluator, Phoenix,
+# plots, and the write-up. GPU-only packages live in requirements-gpu.txt and
+# are installed on Kaggle, never here.
+#
+#   uv pip install -r requirements.txt
+
+# --- config, schema, invariants -------------------------------------------
+pyyaml>=6.0
+pydantic>=2.7
+python-dotenv>=1.0
+
+# --- teacher APIs (free tiers: Groq / OpenRouter / Google AI Studio) -------
+# Groq and OpenRouter are OpenAI-wire-compatible, so `openai` covers both.
+openai>=1.40
+google-genai>=1.0
+httpx>=0.27
+tenacity>=8.3          # harvest backoff against daily request caps
+
+# --- models: teacher-forced replay on small students, data prep -----------
+torch>=2.4             # CPU/MPS wheel on macOS; CUDA build is Kaggle-side
+transformers>=4.44
+tokenizers>=0.19
+peft>=0.12             # load LoRA adapters for local teacher-forced eval
+accelerate>=0.33
+datasets>=2.20
+huggingface-hub>=0.24  # adapter checkpoints pushed/pulled from the Hub
+
+# --- agent harness ---------------------------------------------------------
+langgraph>=0.2
+langchain-core>=0.3
+
+# --- tracking and tracing --------------------------------------------------
+wandb>=0.17
+arize-phoenix>=4.0     # self-hosted locally; NOT LangSmith (free trace cap)
+openinference-instrumentation-openai>=0.1
+
+# --- analysis and figures --------------------------------------------------
+numpy>=1.26
+pandas>=2.2
+scipy>=1.13            # 95% CIs across seeds
+matplotlib>=3.9
+jupyterlab>=4.2
+ipykernel>=6.29
+
+# --- runtime odds and ends -------------------------------------------------
+tqdm>=4.66
+rich>=13.7
+orjson>=3.10
+
+# --- dev / `make check` ----------------------------------------------------
+pytest>=8.2
+ruff>=0.5

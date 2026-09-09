@@ -1,0 +1,21 @@
+# Kaggle / GPU-session dependency set. DO NOT install on the Mac.
+#
+# Keeping one canonical training path (Kaggle + HF PEFT + bitsandbytes) is a
+# hard rule from tool-router-ladder-plan.md §7 — a second local training path
+# costs days of chasing why two code paths disagree.
+#
+# T4 (SM75) constraints to respect: no FP8, no FlashAttention-2, xformers
+# attention backend. flash-attn is deliberately absent below.
+#
+#   pip install -r requirements-gpu.txt
+
+-r requirements.txt
+
+# --- LoRA / QLoRA training -------------------------------------------------
+trl>=0.9
+bitsandbytes>=0.43     # 4-bit base weights; CUDA-only
+sentencepiece>=0.2
+
+# --- serving ---------------------------------------------------------------
+vllm>=0.5              # T4: launch with --dtype half, xformers backend
+xformers>=0.0.27
