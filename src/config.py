@@ -27,7 +27,10 @@ from src.hashing import hash_obj, short
 # Applied on load when --smoke is passed. One place, both paths.
 # Target: every script finishes in under two minutes (division-of-labor.md).
 SMOKE_OVERRIDES: dict[str, Any] = {
-    "harvest": {"n_tasks": 3, "samples_per_task": 1},
+    # A real retail episode runs ~194s, so "tiny inputs" has to mean a shorter
+    # episode, not just fewer of them: one task, capped at a couple of turns.
+    "harvest": {"n_tasks": 1, "samples_per_task": 1},
+    "simulator": {"max_turns": 2},
     "train": {"epochs": 1, "max_steps": 1, "batch_size": 1, "grad_accum": 1},
     "eval": {"n_tasks": 2, "seeds": [0], "catalog_sizes": [15]},
     "escalation": {"thresholds": [0.7]},
@@ -54,17 +57,23 @@ class TeacherConfig(_Frozen):
     several thousand tokens and the TPM ceiling binds long before the RPM one.
     """
 
-    provider: Literal["groq", "openrouter", "google"]
+    provider: Literal["groq", "openrouter", "google", "nvidia_nim"]
     model: str
     temperatures: list[float]
     max_tokens: int = 1024
     requests_per_minute: int = 30
     requests_per_day: int | None = None
-    tokens_per_minute: int
+    tokens_per_minute: int | None = None  # None when the provider meters requests only
     avg_tokens_per_call: int  # measured, for quota arithmetic before a launch
 
     def calls_per_minute(self) -> float:
-        """What the ceilings actually allow: whichever of TPM or RPM binds first."""
+        """What the ceilings actually allow: whichever of TPM or RPM binds first.
+
+        Groq taught us this the hard way — a headline 1,000 requests/day meant 48
+        in practice, because the token cap ran out first.
+        """
+        if self.tokens_per_minute is None:
+            return float(self.requests_per_minute)
         return min(self.tokens_per_minute / self.avg_tokens_per_call, self.requests_per_minute)
 
     def episodes_per_day(self, steps_per_episode: int = 8) -> float | None:
@@ -176,6 +185,19 @@ class ExperimentConfig(_Frozen):
 
     def short_fingerprint(self) -> str:
         return short(self.fingerprint())
+
+    def teacher_fingerprint(self) -> str:
+        """Identity of the harvest, which does not depend on the student.
+
+        The harvest records what the TEACHER did. Keying its resume log to the
+        full config would mean switching from qwen05b to qwen15b re-harvests six
+        days of episodes that are already on disk and still valid.
+        """
+        payload = self.model_dump(
+            mode="json",
+            include={"prompt_template_hash", "teacher", "split", "harvest", "simulator"},
+        )
+        return hash_obj(payload)
 
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:

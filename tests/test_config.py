@@ -13,9 +13,20 @@ REAL = "configs/qwen05b.yaml"
 
 
 def test_extends_pulls_shared_values_from_base():
+    """Inherited values come from base.yaml; own values override.
+
+    Compares against base.yaml itself rather than a hardcoded provider name —
+    the teacher has changed three times in one day, and a test that has to be
+    edited on every such change is testing the wrong thing.
+    """
+    import yaml
+
+    base = yaml.safe_load(Path("configs/base.yaml").read_text())
     cfg = load_config(REAL)
+
     assert cfg.name == "qwen05b"
-    assert cfg.teacher.provider == "google"  # inherited from base.yaml
+    assert cfg.teacher.provider == base["teacher"]["provider"]  # inherited
+    assert cfg.teacher.model == base["teacher"]["model"]
     assert cfg.model.base_model == "Qwen/Qwen2.5-0.5B-Instruct"  # own value
 
 
@@ -116,3 +127,26 @@ def test_circular_extends_is_caught(tmp_path):
 
 def test_seed_override_from_cli_wins():
     assert load_config(REAL, seed=4242).seed == 4242
+
+
+def test_teacher_fingerprint_ignores_the_student_model():
+    """Switching student config must not invalidate a six-day harvest."""
+    a = load_config("configs/qwen05b.yaml")
+    b = load_config("configs/qwen15b.yaml")
+    assert a.model != b.model
+    assert a.teacher_fingerprint() == b.teacher_fingerprint()
+    assert a.fingerprint() != b.fingerprint()
+
+
+def test_teacher_fingerprint_tracks_a_teacher_change():
+    cfg = load_config("configs/qwen05b.yaml")
+    moved = cfg.model_copy(
+        update={"teacher": cfg.teacher.model_copy(update={"model": "other/model"})}
+    )
+    assert cfg.teacher_fingerprint() != moved.teacher_fingerprint()
+
+
+def test_teacher_fingerprint_tracks_a_split_change():
+    cfg = load_config("configs/qwen05b.yaml")
+    moved = cfg.model_copy(update={"split": cfg.split.model_copy(update={"split_seed": 999})})
+    assert cfg.teacher_fingerprint() != moved.teacher_fingerprint()

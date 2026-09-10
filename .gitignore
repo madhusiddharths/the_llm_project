@@ -76,6 +76,8 @@ traces/
 # Smoke and scaffold output is the exception — it is throwaway, and must never
 # sit next to real numbers in git.
 results/*.smoke.jsonl
+# local rate-limit bookkeeping; meaningless on another machine
+results/.quota.json
 
 # --- notebooks --------------------------------------------------------------
 .ipynb_checkpoints/

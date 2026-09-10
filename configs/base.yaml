@@ -11,52 +11,57 @@ prompt_template_hash: "2a8d6ca63b6eb7216c8c461697168956d5063c7253647ee4e11058ac5
 seed: 1234
 
 teacher:
-  # DECIDED 2026-09-09 after testing both free tiers against tau2-bench retail.
+  # DECIDED 2026-09-09. Every option below was measured, none assumed.
   #
-  # Groq (gpt-oss-120b) is out: 8000 TPM against a ~4.1k-token agent turn is
-  # ~1.9 calls/min, and tau2 does no pacing — it retries ~2s after a 429 while
-  # the API asks for 15-25s, so every attempt digs deeper. Also, gpt-oss-120b is
-  # open-weight and self-hostable, which weakens the whole argument: the claim
-  # is large-model-you-cannot-self-host -> small-model-you-can.
+  # Rejected, with the number that killed each:
+  #   gemini-3.8-flash    20 requests/DAY -> 162 days for week 1. The daily cap is
+  #                       invisible on the quota dashboard; only a 429 reveals it.
+  #   groq gpt-oss-120b   "1,000 req/day" headline, but 200K tokens/day caps it at
+  #                       ~48 real calls -> 67 days.
+  #   groq/compound       250/day, no token cap, but ships its own built-in search
+  #                       and code execution — a bad teacher for a tool-routing study.
+  #   nvidia build.nvidia 1,000 credits on signup, 5,000 LIFETIME maximum, trial
+  #                       credits that never reset (confirmed by NVIDIA staff on
+  #                       their developer forums). Week 1 alone needs 5,082. The
+  #                       disqualifier is not the size but the non-renewal: the
+  #                       remedy for prompt-format drift is re-running the harvest,
+  #                       and a one-shot balance makes the first mistake terminal.
+  #                       Tool calling DOES work there (verified by direct probe:
+  #                       correct get_order call with {"order_id":"42"}), so it
+  #                       stays useful as a reserve — see FUTURE.md.
   #
-  # Gemini Flash free tier: ~1M TPM removes the token wall entirely. The budget
-  # becomes REQUESTS PER DAY. At ~12 agent calls/episode, 1500/day is ~125
-  # episodes/day, and week 1 needs 465 (165 harvest + 300 baseline) — under 4
-  # days. Free tier means Google may train on the traffic; fine for public
-  # benchmark data, but it goes in README §7 as a stated limitation.
+  # OpenRouter, with a one-time $10 lifetime credit purchase:
+  #   - 1,000 free-model requests per DAY, RENEWABLE. That is the property that
+  #     matters: a re-harvest costs a day, not the project.
+  #   - $0 per token; the $10 buys the rate limit, not the tokens.
+  #   - 20 RPM. Cap is account-wide across all :free models, so simulator calls
+  #     draw on the same budget: ~11 requests/episode, ~5.1 days for week 1.
+  #   - Nemotron 3 Ultra: 550B total / 55B active MoE, tool calling confirmed.
+  #     Bigger than the plan's assumed Llama 3.3 70B, and at 550B the "large model
+  #     you cannot self-host" framing in §7 genuinely holds.
   #
-  # PINNED, never an alias. "gemini-flash-latest" would let Google repoint the
-  # teacher mid-project; invariants.assert_teacher_model_pinned rejects it.
-  provider: google
-  model: gemini-3.8-flash
+  # KNOWN RISK: OpenRouter routes :free variants across providers, so quantisation
+  # can shift mid-project — a teacher that looks frozen and is not.
+  # assert_teacher_model_pinned cannot catch it: the model NAME never changes.
+  # harvest.py must pin the provider and disable fallbacks.
+  provider: openrouter
+  model: nvidia/nemotron-3-ultra-550b-a55b:free
   temperatures: [0.0, 0.7, 1.0]   # 3 samples per task (plan §6, week 1)
   max_tokens: 1024
-  # MEASURED 2026-09-09, not taken from docs. Google returned:
-  #   quotaId GenerateRequestsPerMinutePerProjectPerModel-FreeTier, value 5
-  # Published figures said 15. They were wrong. Trust the 429 body, or
-  # ai.dev/rate-limit, over any blog post — including this comment.
-  #
-  # The quota is PER MODEL, so agent and user simulator on different models get
-  # separate buckets. That does NOT license a multi-model teacher: the harvest
-  # and the baseline must come from one frozen model or the comparison is void.
-  # From the account's own quota page, 2026-09-09. Every full Flash model
-  # (2.5 / 3 / 3.5 / 3.6 / 3.7 / 3.8) is 5 RPM. Flash Lite is 10-15 RPM. All of
-  # them are 250K TPM. No requests-per-day column is shown on that page.
-  #
-  # REQUESTS BIND, TOKENS DO NOT. 5 RPM x ~4.1k tokens is ~20.5K TPM against a
-  # 250K ceiling — 8% utilisation. There is no point optimising prompt size; the
-  # only lever that matters is the number of calls.
-  requests_per_minute: 5
-  requests_per_day: null          # not surfaced on the quota page; plan against RPM
-  tokens_per_minute: 250000
-  avg_tokens_per_call: 4100       # measured on Groq; recheck against Gemini
-  # MEASURED from the first successful retail episode (2026-09-09):
-  #   7 agent calls, 4 user-simulator calls, 4 tool results, 25.3s wall clock.
-  #   LiteLLM priced the agent side at $0.0108/episode -> ~$1.08 per 100 tasks.
-  # That is the figure for the README cost column, labelled as published-rate
-  # hypothetical rather than a bill paid: this ran on free tier at $0.
-  # The plan's working estimate was 12 agent calls/episode. Seven is one
-  # episode's evidence, and a short one; re-measure across the real harvest.
+  requests_per_minute: 20
+  requests_per_day: 1000          # renewable daily; account-wide across :free
+  tokens_per_minute: null         # OpenRouter free meters requests, not tokens
+  avg_tokens_per_call: 4100       # measured on Groq; re-measure on first episodes
+  # MEASURED 2026-09-09 over 2 full retail episodes, teacher as agent:
+  #   agent calls   9.5 / episode   (working estimate had been 7)
+  #   user-sim      3.5 / episode   (the PLAN assumed ~10 — see split note)
+  #   total API     13  / episode
+  #   duration      194 s / episode at concurrency 1
+  #   task success  2/2. n=2, so promising rather than conclusive, but Gate 1
+  #                 wants >=50% and both were perfect 5/5 including the write.
+  # NOTE: LiteLLM reports $0.0000 for :free models, so tau2's cost column is
+  # dead. README cost figures must come from published Nemotron rates, labelled
+  # as hypothetical — which is what plan §7 constraint 3 asks for anyway.
 
 split:
   # RESOLVED 2026-09-09: tau2-bench retail ships 114 tasks (counted from
@@ -68,7 +73,7 @@ split:
   split_seed: 7
 
 harvest:
-  n_tasks: 55
+  n_tasks: 54                     # must equal split.n_train
   samples_per_task: 3
   rejection_sampling: true        # only successful runs become training data
 
@@ -87,8 +92,28 @@ train:
   # memorization, not degradation. The schema has no field to put it in.
 
 simulator:
-  # Frozen across every config or the comparison is meaningless (§7).
-  model: Qwen2.5-7B-Instruct
+  # DECIDED 2026-09-09. Plan §7 constraint 2 said move this in-house. Overruled,
+  # on evidence and on an argument the plan did not consider.
+  #
+  # The plan's stated reason was volume: "1,200 episodes x ~10 turns is ~12,000
+  # calls". Measured over 2 full retail episodes it is 3.5 turns, not 10.
+  #
+  # The reason it stays on the API is stronger than the volume it saves. A weaker
+  # simulator produces more predictable, more cooperative users. Predictable users
+  # give the agent fewer chances to go off-rails, which RAISES end-to-end task
+  # success, which SHRINKS the gap between per-step agreement and end-to-end
+  # success. That gap is the headline finding (§1). A 7B simulator risks
+  # understating the very effect this project exists to measure.
+  #
+  # The simulator is apparatus, not subject. What it must be is FROZEN — same
+  # model, temperature and seed in the week 1 teacher baseline and the week 3
+  # student runs, or students are compared against a teacher that faced a
+  # different user. invariants.assert_simulator_frozen enforces that.
+  #
+  # Verified 2026-09-09: 2/2 retail episodes completed, reward 1.0 both.
+  # Inherits the same OpenRouter routing-drift risk as the teacher; pin the
+  # provider and disable fallbacks for this model too.
+  model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
   temperature: 0.0                # variance suppression: §10 ranks simulator
                                   # variance the single most likely failure.
                                   # Change only before Stage A, never during.
@@ -100,6 +125,11 @@ eval:
   n_tasks: 60
   seeds: [0, 1, 2, 3, 4]          # 5 seeds minimum, CIs across them
   mode: both
+  # QUOTA NOTE: week 3 Stage A on the API simulator is 6 configs x 60 tasks x
+  # 5 seeds = 1,800 episodes x 3.5 sim calls = 6,300 requests = 6.3 of 7 days at
+  # 1,000/day. No slack for a re-run. The plan's own Gate 3 fallback (cut to
+  # catalog 15 vs 80 only) drops it to 4,200 requests / 4.2 days. Take that
+  # fallback the moment week 3 looks tight, not after it has run out.
 
 escalation:
   enabled: false

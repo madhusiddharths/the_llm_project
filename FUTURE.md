@@ -24,3 +24,12 @@ rather than a new idea.
 ## Parked ideas
 
 <!-- Append here, dated. One line each. Do not expand into a design. -->
+
+- 2026-09-09 — NVIDIA build.nvidia.com holds ~1,000 unspent trial credits (5,000
+  lifetime max, non-renewable). Tool calling verified there. Best use is not bulk
+  work but a drift check: run ~100 episodes against NVIDIA's first-party
+  Nemotron and compare step agreement with the OpenRouter-served copy. That
+  directly measures the quantisation-drift risk the teacher config flags, and
+  turns a stated limitation into a measured one. Costs ~100 of the 1,000.
+- 2026-09-09 — Request NVIDIA's additional 4,000 credits with an .edu address.
+  Free, minutes of work, and worth doing purely as reserve capacity.
