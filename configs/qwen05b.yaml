@@ -1,0 +1,9 @@
+# Stage A, rung 1. The debug rung: §7 says do all exploratory work here, where a
+# full train-and-eval cycle costs well under an hour.
+extends: base.yaml
+name: qwen05b
+
+model:
+  base_model: Qwen/Qwen2.5-0.5B-Instruct
+  params_b: 0.5
+  adapter_repo: null

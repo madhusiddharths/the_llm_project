@@ -1,0 +1,23 @@
+# Tooling config only. This project is run as scripts, not installed as a
+# package, so there is deliberately no [project] / build-system section.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "PTH", "RUF"]
+ignore = [
+    "E501",    # line length is handled by the formatter
+    "B008",    # argparse/pydantic idioms rely on calls in defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q --strict-markers"
+filterwarnings = ["ignore::DeprecationWarning"]

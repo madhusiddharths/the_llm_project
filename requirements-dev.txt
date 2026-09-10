@@ -1,0 +1,10 @@
+# Lean dependency set for CI and `make check`.
+#
+# The core modules (config, hashing, prompts, invariants, runlog, cli) import no
+# torch by design, so CI installs this in seconds instead of the ~1.7 GB local
+# set. tests/test_core_is_light.py enforces that property.
+
+pyyaml>=6.0
+pydantic>=2.7
+pytest>=8.2
+ruff>=0.5

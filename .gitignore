@@ -43,6 +43,7 @@ secrets.yaml
 #  an excluded directory, which would make the manifest negation below dead)
 data/trajectories/*
 !data/trajectories/manifest*.json
+!data/trajectories/.gitkeep
 data/cache/
 data/raw/
 data/**/*.jsonl
@@ -72,6 +73,9 @@ traces/
 
 # NOTE: results/ is deliberately NOT ignored. Raw run JSON is the source of
 # truth for the README table and the plots regenerate from it.
+# Smoke and scaffold output is the exception — it is throwaway, and must never
+# sit next to real numbers in git.
+results/*.smoke.jsonl
 
 # --- notebooks --------------------------------------------------------------
 .ipynb_checkpoints/

@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      # requirements-dev.txt, not requirements.txt: the core modules import no
+      # torch (enforced by tests/test_core_is_light.py), so CI installs four
+      # packages in seconds instead of ~1.7 GB of ML wheels.
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint
+        run: |
+          ruff check src tests
+          ruff format --check src tests
+
+      - name: Tests
+        run: pytest
+
+      - name: Smoke paths
+        run: |
+          for s in harvest train eval_forced eval_free router_node taxonomy; do
+            echo "--- $s ---"
+            python src/$s.py --smoke || exit 1
+          done

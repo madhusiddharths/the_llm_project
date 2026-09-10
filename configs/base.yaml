@@ -1,0 +1,106 @@
+# Shared defaults. Every experiment cell extends this file, so values that must
+# be identical across configs are written exactly once.
+
+name: base
+
+# Pinned fingerprint of the shared serializer (src/prompts.py). If this and the
+# live hash disagree, every run aborts — that is the point. Reprint the live
+# value with `make prompt-hash` after any reviewed change to the serializer.
+prompt_template_hash: "2a8d6ca63b6eb7216c8c461697168956d5063c7253647ee4e11058ac59d9ebf4"
+
+seed: 1234
+
+teacher:
+  # DECIDED 2026-09-09 after testing both free tiers against tau2-bench retail.
+  #
+  # Groq (gpt-oss-120b) is out: 8000 TPM against a ~4.1k-token agent turn is
+  # ~1.9 calls/min, and tau2 does no pacing — it retries ~2s after a 429 while
+  # the API asks for 15-25s, so every attempt digs deeper. Also, gpt-oss-120b is
+  # open-weight and self-hostable, which weakens the whole argument: the claim
+  # is large-model-you-cannot-self-host -> small-model-you-can.
+  #
+  # Gemini Flash free tier: ~1M TPM removes the token wall entirely. The budget
+  # becomes REQUESTS PER DAY. At ~12 agent calls/episode, 1500/day is ~125
+  # episodes/day, and week 1 needs 465 (165 harvest + 300 baseline) — under 4
+  # days. Free tier means Google may train on the traffic; fine for public
+  # benchmark data, but it goes in README §7 as a stated limitation.
+  #
+  # PINNED, never an alias. "gemini-flash-latest" would let Google repoint the
+  # teacher mid-project; invariants.assert_teacher_model_pinned rejects it.
+  provider: google
+  model: gemini-3.8-flash
+  temperatures: [0.0, 0.7, 1.0]   # 3 samples per task (plan §6, week 1)
+  max_tokens: 1024
+  # MEASURED 2026-09-09, not taken from docs. Google returned:
+  #   quotaId GenerateRequestsPerMinutePerProjectPerModel-FreeTier, value 5
+  # Published figures said 15. They were wrong. Trust the 429 body, or
+  # ai.dev/rate-limit, over any blog post — including this comment.
+  #
+  # The quota is PER MODEL, so agent and user simulator on different models get
+  # separate buckets. That does NOT license a multi-model teacher: the harvest
+  # and the baseline must come from one frozen model or the comparison is void.
+  # From the account's own quota page, 2026-09-09. Every full Flash model
+  # (2.5 / 3 / 3.5 / 3.6 / 3.7 / 3.8) is 5 RPM. Flash Lite is 10-15 RPM. All of
+  # them are 250K TPM. No requests-per-day column is shown on that page.
+  #
+  # REQUESTS BIND, TOKENS DO NOT. 5 RPM x ~4.1k tokens is ~20.5K TPM against a
+  # 250K ceiling — 8% utilisation. There is no point optimising prompt size; the
+  # only lever that matters is the number of calls.
+  requests_per_minute: 5
+  requests_per_day: null          # not surfaced on the quota page; plan against RPM
+  tokens_per_minute: 250000
+  avg_tokens_per_call: 4100       # measured on Groq; recheck against Gemini
+  # MEASURED from the first successful retail episode (2026-09-09):
+  #   7 agent calls, 4 user-simulator calls, 4 tool results, 25.3s wall clock.
+  #   LiteLLM priced the agent side at $0.0108/episode -> ~$1.08 per 100 tasks.
+  # That is the figure for the README cost column, labelled as published-rate
+  # hypothetical rather than a bill paid: this ran on free tier at $0.
+  # The plan's working estimate was 12 agent calls/episode. Seven is one
+  # episode's evidence, and a short one; re-measure across the real harvest.
+
+split:
+  # RESOLVED 2026-09-09: tau2-bench retail ships 114 tasks (counted from
+  # data/tau2/domains/retail/tasks.json), against the plan's assumed 115. The
+  # eval half is held at 60 because every table row and every CI depends on it;
+  # the training half absorbs the difference. Split by task ID, never by step.
+  n_train: 54                     # trajectory harvest
+  n_eval: 60                      # baseline + every table row
+  split_seed: 7
+
+harvest:
+  n_tasks: 55
+  samples_per_task: 3
+  rejection_sampling: true        # only successful runs become training data
+
+train:
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  learning_rate: 1.0e-4
+  epochs: 3
+  batch_size: 4
+  grad_accum: 4
+  max_seq_len: 2048
+  max_steps: null
+  # NOTE: no catalog key here, and none may be added. Plan §5: one adapter,
+  # evaluated against all three catalogs. Training per-catalog measures
+  # memorization, not degradation. The schema has no field to put it in.
+
+simulator:
+  # Frozen across every config or the comparison is meaningless (§7).
+  model: Qwen2.5-7B-Instruct
+  temperature: 0.0                # variance suppression: §10 ranks simulator
+                                  # variance the single most likely failure.
+                                  # Change only before Stage A, never during.
+  seed: 20260909
+  max_turns: 15
+
+eval:
+  catalog_sizes: [15, 40, 80]     # one adapter, all three catalogs
+  n_tasks: 60
+  seeds: [0, 1, 2, 3, 4]          # 5 seeds minimum, CIs across them
+  mode: both
+
+escalation:
+  enabled: false
+  thresholds: [0.5, 0.7, 0.85, 0.95]   # Stage D sweep (§5)

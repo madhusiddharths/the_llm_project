@@ -1,0 +1,9 @@
+# Stage A, rung 2. Identical data and hyperparameters to rung 1 — only the base
+# model changes (§6, week 2).
+extends: base.yaml
+name: qwen15b
+
+model:
+  base_model: Qwen/Qwen2.5-1.5B-Instruct
+  params_b: 1.5
+  adapter_repo: null
