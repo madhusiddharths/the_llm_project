@@ -1,0 +1,19 @@
+{
+  "file": "train.smoke.jsonl",
+  "file_sha256": "c36b69d94b6bc77cc6a901a46f07a2790f7bdac0ec9126988c0a6b34ac8c18d1",
+  "created": "2026-09-22T01:18:59Z",
+  "smoke": true,
+  "teacher_fingerprint": "4138d3faa22ad0840cc0ea6f338892bddec9f48ecf707e1ea2d64bd96615fc6a",
+  "prompt_template_hash": "82ce4cbad091633edc34813c3728d81e59d01d4fc8b09553041be3edf2d4ffc9",
+  "system_prompt_hash": "4cf6e44236a35dda69511c196e882c7465b547e942bd9d26984ab6eb4d28ef83",
+  "catalog_size": 16,
+  "catalog_hash": "56b1221bc0a81daa29f3e9de6e3bb8a787beee08729d472d7ce4141c72fa7053",
+  "rejection_sampled": true,
+  "n_episodes": 2,
+  "n_decisions": 24,
+  "n_tasks": 1,
+  "task_ids": [
+    "63"
+  ],
+  "max_chars": 30160
+}

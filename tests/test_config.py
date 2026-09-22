@@ -85,7 +85,7 @@ def test_train_config_has_no_catalog_field():
 
 
 def test_catalog_is_an_eval_axis():
-    assert load_config(REAL).eval.catalog_sizes == [15, 40, 80]
+    assert load_config(REAL).eval.catalog_sizes == [16, 40, 80]
 
 
 def test_config_is_frozen():
@@ -144,6 +144,24 @@ def test_teacher_fingerprint_tracks_a_teacher_change():
         update={"teacher": cfg.teacher.model_copy(update={"model": "other/model"})}
     )
     assert cfg.teacher_fingerprint() != moved.teacher_fingerprint()
+
+
+# The fingerprint the 2026-09 harvest was recorded under. harvest-harvest.jsonl,
+# harvest-baseline.jsonl and data/trajectories/*/4138d3faa22a/ are all keyed to
+# it. If this test fails, a config or schema change has orphaned the harvest.
+HARVEST_FINGERPRINT = "4138d3faa22ad0840cc0ea6f338892bddec9f48ecf707e1ea2d64bd96615fc6a"
+
+
+def test_the_recorded_harvest_fingerprint_does_not_move():
+    for path in ("configs/qwen05b.yaml", "configs/qwen15b.yaml"):
+        assert load_config(path).teacher_fingerprint() == HARVEST_FINGERPRINT
+
+
+def test_a_serializer_change_does_not_rekey_the_harvest():
+    cfg = load_config("configs/qwen05b.yaml")
+    moved = cfg.model_copy(update={"prompt_template_hash": "0" * 64})
+    assert moved.teacher_fingerprint() == cfg.teacher_fingerprint()
+    assert moved.fingerprint() != cfg.fingerprint()
 
 
 def test_teacher_fingerprint_tracks_a_split_change():

@@ -13,8 +13,32 @@ import sys
 
 import pytest
 
-CORE = ["src.hashing", "src.prompts", "src.config", "src.invariants", "src.runlog", "src.cli"]
-HEAVY = {"torch", "transformers", "datasets", "peft", "accelerate", "vllm", "wandb", "phoenix"}
+CORE = [
+    "src.hashing",
+    "src.prompts",
+    "src.config",
+    "src.invariants",
+    "src.runlog",
+    "src.cli",
+    "src.judge",
+    "src.trajectories",
+    "src.metrics",
+    "src.catalogs",
+    "src.stats",
+]
+# tau2 is in here for src.judge: it patches tau2 internals, and the patch is only
+# safe to import from a test or a CI run because that import stays inside install().
+HEAVY = {
+    "torch",
+    "transformers",
+    "datasets",
+    "peft",
+    "accelerate",
+    "vllm",
+    "wandb",
+    "phoenix",
+    "tau2",
+}
 
 
 @pytest.mark.parametrize("module", CORE)

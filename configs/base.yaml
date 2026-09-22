@@ -6,7 +6,20 @@ name: base
 # Pinned fingerprint of the shared serializer (src/prompts.py). If this and the
 # live hash disagree, every run aborts — that is the point. Reprint the live
 # value with `make prompt-hash` after any reviewed change to the serializer.
-prompt_template_hash: "2a8d6ca63b6eb7216c8c461697168956d5063c7253647ee4e11058ac59d9ebf4"
+# 2026-09-21: re-pinned for the Qwen-format serializer (D1, D2); see src/prompts.py.
+prompt_template_hash: "82ce4cbad091633edc34813c3728d81e59d01d4fc8b09553041be3edf2d4ffc9"
+
+# FROZEN 2026-09-21. The serializer hash that was live when the teacher harvest
+# was recorded (2026-09-11 to 09-15). It feeds teacher_fingerprint() instead of
+# the live hash above. tau2 built the teacher's prompts, not src/prompts.py, so
+# the serializer can change without invalidating the harvest. Never edit this;
+# a new value would orphan every recorded episode from its log.
+harvest_prompt_template_hash: "2a8d6ca63b6eb7216c8c461697168956d5063c7253647ee4e11058ac59d9ebf4"
+
+# sha256 of data/catalogs/system_prompt.txt: tau2's agent instructions plus the
+# retail policy, snapshotted 2026-09-21 by `python src/catalogs.py snapshot`.
+# Train and eval both render it; src/catalogs.py refuses a file that differs.
+system_prompt_hash: "4cf6e44236a35dda69511c196e882c7465b547e942bd9d26984ab6eb4d28ef83"
 
 seed: 1234
 
@@ -85,7 +98,11 @@ train:
   epochs: 3
   batch_size: 4
   grad_accum: 4
-  max_seq_len: 2048
+  # DECIDED 2026-09-21 (D2). 2048 fit none of the prompts: the data card
+  # estimated p50 ~6.5k tokens with the policy and full JSON tool schemas. The
+  # policy stays, and tools render compactly (src/prompts.py). Verify T4 memory
+  # at this length in train.py --smoke before the first real run.
+  max_seq_len: 8192
   max_steps: null
   # NOTE: no catalog key here, and none may be added. Plan §5: one adapter,
   # evaluated against all three catalogs. Training per-catalog measures
@@ -120,8 +137,45 @@ simulator:
   seed: 20260909
   max_turns: 15
 
+judge:
+  # DECIDED 2026-09-10, after the first real harvest lost a third of its episodes.
+  #
+  # tau2-bench grades 40 of the 114 retail tasks with an LLM judge and hardcodes
+  # it to gpt-4.1 (DEFAULT_LLM_NL_ASSERTIONS). We hold no OpenAI key, so those
+  # episodes raised at scoring time, burned three full attempts each, and wrote
+  # nothing. Confirmed on batch 0: tasks 63 and 108 (both carry nl_assertions)
+  # failed; 79 and 22 (neither does) scored normally. 18/54 train tasks and
+  # 22/60 eval tasks are affected, so the week 3 baseline would have hit it too.
+  #
+  # Why not just switch the judge off (EvaluationType.ALL_IGNORE_BASIS):
+  # NL_ASSERTION is in reward_basis for 112 of 114 tasks, so dropping it removes
+  # a multiplicative factor and raises reward on exactly those 40 tasks. With
+  # rejection_sampling: true that admits trajectories which failed their
+  # qualitative check — it degrades the training data instead of saving quota.
+  #
+  # Why the Super 120B and not the teacher: a teacher that grades its own
+  # trajectories is marking its own homework, and the rejection-sampling filter
+  # is only worth having if it is independent of what it filters.
+  # assert_judge_not_teacher makes that structural rather than a convention.
+  #
+  # FROZEN, exactly like the simulator: the same grader must score the week 1
+  # harvest and the week 3 student runs, or the ladder compares two different
+  # graders. It is included in teacher_fingerprint() for that reason — changing
+  # it starts a fresh set of cells rather than silently mixing reward scales.
+  #
+  # QUOTA: one extra request per episode that has nl_assertions, ~54 across all
+  # of week 1. It goes through litellm.completion, so throttle already paces it.
+  model: openrouter/nvidia/nemotron-3-super-120b-a12b:free
+  temperature: 0.0
+
 eval:
-  catalog_sizes: [15, 40, 80]     # one adapter, all three catalogs
+  # DECIDED 2026-09-21 (D4): 16, not 15. tau2 retail ships 16 native tools,
+  # so a 15-tool catalog could not hold every tool the teacher used.
+  catalog_sizes: [16, 40, 80]     # one adapter, all three catalogs
+  # sha256 of data/catalogs/catalog-<size>.json. 16 is the native tau2 set,
+  # snapshotted 2026-09-21. 40 and 80 are pinned when V1-06 builds them.
+  catalog_hashes:
+    16: "56b1221bc0a81daa29f3e9de6e3bb8a787beee08729d472d7ce4141c72fa7053"
   n_tasks: 60
   seeds: [0, 1, 2, 3, 4]          # 5 seeds minimum, CIs across them
   mode: both

@@ -32,7 +32,7 @@ SMOKE_OVERRIDES: dict[str, Any] = {
     "harvest": {"n_tasks": 1, "samples_per_task": 1},
     "simulator": {"max_turns": 2},
     "train": {"epochs": 1, "max_steps": 1, "batch_size": 1, "grad_accum": 1},
-    "eval": {"n_tasks": 2, "seeds": [0], "catalog_sizes": [15]},
+    "eval": {"n_tasks": 2, "seeds": [0], "catalog_sizes": [16]},
     "escalation": {"thresholds": [0.7]},
 }
 
@@ -124,6 +124,19 @@ class SimulatorConfig(_Frozen):
     max_turns: int
 
 
+class JudgeConfig(_Frozen):
+    """tau2's NL-assertion grader. Frozen for the same reason the simulator is.
+
+    tau2 defaults this to gpt-4.1 and we have no OpenAI key, so it must be set
+    explicitly or 40 of the 114 retail tasks fail at scoring time. See src/judge.py
+    for why the judge is kept rather than switched off, and why it may not be the
+    teacher. invariants.assert_judge_frozen and assert_judge_not_teacher enforce both.
+    """
+
+    model: str
+    temperature: float
+
+
 class EvalConfig(_Frozen):
     catalog_sizes: list[int]
     n_tasks: int
@@ -158,6 +171,12 @@ class ExperimentConfig(_Frozen):
     name: str
     # Pinned in base.yaml. Live value comes from prompts.template_hash().
     prompt_template_hash: str
+    # The serializer hash that was live when the teacher harvest was recorded.
+    # Only teacher_fingerprint() reads it; see there for why it must not float.
+    harvest_prompt_template_hash: str
+    # sha256 of data/catalogs/system_prompt.txt (tau2's instructions + retail
+    # policy), which train and eval both render. See src/catalogs.py.
+    system_prompt_hash: str | None = None
     # Required, no default — "seed set explicitly, not left to default" is a
     # pre-launch checklist item, so the schema refuses a config that omits it.
     seed: int
@@ -169,6 +188,7 @@ class ExperimentConfig(_Frozen):
     harvest: HarvestConfig
     train: TrainConfig
     simulator: SimulatorConfig
+    judge: JudgeConfig
     eval: EvalConfig
     escalation: EscalationConfig
     paths: PathsConfig = Field(default_factory=PathsConfig)
@@ -192,11 +212,31 @@ class ExperimentConfig(_Frozen):
         The harvest records what the TEACHER did. Keying its resume log to the
         full config would mean switching from qwen05b to qwen15b re-harvests six
         days of episodes that are already on disk and still valid.
+
+        The same logic applies to the student's serializer. tau2 built the
+        teacher's prompts, not src/prompts.py, so a serializer change must not
+        re-key the harvest. It would, if this read the live
+        prompt_template_hash: the harvest log and the trajectory directory
+        (data/trajectories/<name>/<short fingerprint>/) are both keyed to this
+        value, and 162 recorded episodes would silently stop matching. So the
+        payload carries the hash that was live at harvest time, pinned in
+        base.yaml as harvest_prompt_template_hash. The payload keeps its original
+        shape, so the fingerprint is byte-identical to the one the harvest was
+        recorded under; tests/test_config.py pins that value.
         """
         payload = self.model_dump(
             mode="json",
-            include={"prompt_template_hash", "teacher", "split", "harvest", "simulator"},
+            include={
+                "teacher",
+                "split",
+                "harvest",
+                "simulator",
+                # The judge sets the reward that gets logged, so two harvests
+                # graded by different judges are not the same harvest.
+                "judge",
+            },
         )
+        payload["prompt_template_hash"] = self.harvest_prompt_template_hash
         return hash_obj(payload)
 
 

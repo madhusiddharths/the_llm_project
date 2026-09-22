@@ -106,6 +106,7 @@ Thumbs.db
 # --- planning docs: local only, not published --------------------------------
 division-of-labor.md
 tool-router-ladder-plan.md
+execution-plan.md
 
 # --- agent tooling ----------------------------------------------------------
 .claude/settings.local.json

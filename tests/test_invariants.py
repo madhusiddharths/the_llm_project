@@ -10,6 +10,8 @@ from src.invariants import (
     InvariantViolation,
     assert_catalog_hash,
     assert_env_keys,
+    assert_judge_frozen,
+    assert_judge_not_teacher,
     assert_no_catalog_in_train_config,
     assert_prompt_template_match,
     assert_results_appendable,
@@ -31,7 +33,7 @@ def test_mismatched_prompt_hash_aborts_the_run(monkeypatch):
     cfg = load_config(REAL)
     assert_prompt_template_match(cfg)  # baseline: currently agrees
 
-    monkeypatch.setattr(prompts, "PROMPT_TEMPLATE", prompts.PROMPT_TEMPLATE + " ")
+    monkeypatch.setattr(prompts, "TOOLS_TEMPLATE", prompts.TOOLS_TEMPLATE + " ")
     with pytest.raises(InvariantViolation, match="prompt template hash mismatch"):
         assert_prompt_template_match(cfg)
 
@@ -39,14 +41,14 @@ def test_mismatched_prompt_hash_aborts_the_run(monkeypatch):
 def test_serializer_change_alone_is_caught(monkeypatch):
     """The hash covers serializer OUTPUT, not just the template string.
 
-    A change to serialize_state that leaves PROMPT_TEMPLATE untouched still
+    A change to serialize_state that leaves TOOLS_TEMPLATE untouched still
     changes every prompt the model sees, and must still abort.
     """
     cfg = load_config(REAL)
     original = prompts.serialize_state
 
-    def altered(*, tools, messages):
-        return original(tools=tools, messages=messages).replace("\n", "\n\n")
+    def altered(*, system, tools, messages):
+        return original(system=system, tools=tools, messages=messages).replace("\n", "\n\n")
 
     monkeypatch.setattr(prompts, "serialize_state", altered)
     with pytest.raises(InvariantViolation, match="prompt template hash mismatch"):
@@ -63,7 +65,7 @@ def test_configs_disagreeing_with_each_other_abort():
 def test_check_all_aborts_on_prompt_drift(monkeypatch):
     """The whole-run entry point must fail, not just the individual assertion."""
     cfg = load_config(REAL)
-    monkeypatch.setattr(prompts, "PROMPT_TEMPLATE", "totally different")
+    monkeypatch.setattr(prompts, "TOOLS_TEMPLATE", "totally different {tools}")
     with pytest.raises(InvariantViolation):
         check_all(cfg)
 
@@ -132,6 +134,61 @@ def test_simulator_drift_names_the_offending_field():
 def test_identical_simulator_passes():
     cfg = load_config(REAL)
     assert_simulator_frozen(cfg, cfg.simulator)  # does not raise
+
+
+# --- judge frozen and independent (the 2026-09-10 harvest failure) ----------
+
+
+def test_judge_drift_aborts():
+    cfg = load_config(REAL)
+    reference = cfg.judge.model_copy(update={"temperature": 0.9})
+    with pytest.raises(InvariantViolation, match="judge config drifted"):
+        assert_judge_frozen(cfg, reference)
+
+
+def test_judge_drift_names_the_offending_field():
+    cfg = load_config(REAL)
+    reference = cfg.judge.model_copy(update={"model": "openrouter/some/other-model"})
+    with pytest.raises(InvariantViolation, match="model"):
+        assert_judge_frozen(cfg, reference)
+
+
+def test_identical_judge_passes():
+    cfg = load_config(REAL)
+    assert_judge_frozen(cfg, cfg.judge)  # does not raise
+
+
+def test_teacher_may_not_grade_itself():
+    """Rejection sampling filters the training set; the filter must be independent."""
+    cfg = load_config(REAL)
+    selfgrading = cfg.model_copy(
+        update={"judge": cfg.judge.model_copy(update={"model": f"openrouter/{cfg.teacher.model}"})}
+    )
+    with pytest.raises(InvariantViolation, match="cannot grade its own"):
+        assert_judge_not_teacher(selfgrading)
+
+
+def test_self_grading_is_caught_through_the_provider_prefix():
+    """teacher.model is bare, judge.model carries 'openrouter/'. Same model either way."""
+    cfg = load_config(REAL)
+    selfgrading = cfg.model_copy(
+        update={"judge": cfg.judge.model_copy(update={"model": cfg.teacher.model})}
+    )
+    with pytest.raises(InvariantViolation, match="cannot grade its own"):
+        assert_judge_not_teacher(selfgrading)
+
+
+def test_distinct_judge_passes():
+    assert assert_judge_not_teacher(load_config(REAL)) is None
+
+
+def test_real_config_does_not_leave_the_judge_on_the_tau2_default():
+    """tau2 hardcodes gpt-4.1 and we hold no OpenAI key. Anything OpenAI-shaped
+    here means 40 of the 114 retail tasks fail at scoring time, as they did on
+    2026-09-10."""
+    model = load_config(REAL).judge.model
+    assert model.startswith("openrouter/"), model
+    assert "gpt" not in model.lower(), model
 
 
 # --- seed discipline (plan §10: 5 seeds minimum) ----------------------------
@@ -218,4 +275,4 @@ def test_present_env_key_passes(monkeypatch):
 
 
 def test_clean_config_passes_every_check():
-    assert len(check_all(load_config(REAL))) == 5
+    assert len(check_all(load_config(REAL))) == 6

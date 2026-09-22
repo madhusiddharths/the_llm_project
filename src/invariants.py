@@ -16,7 +16,7 @@ import os
 from collections.abc import Iterable, Sequence
 from pathlib import Path
 
-from src.config import ExperimentConfig, SimulatorConfig
+from src.config import ExperimentConfig, JudgeConfig, SimulatorConfig
 from src.hashing import hash_file, short
 from src.prompts import template_hash
 
@@ -144,6 +144,54 @@ def assert_simulator_frozen(cfg: ExperimentConfig, reference: SimulatorConfig) -
         )
 
 
+def assert_judge_frozen(cfg: ExperimentConfig, reference: JudgeConfig) -> None:
+    """NL-assertion judge identical across every config, for the simulator's reason.
+
+    The judge decides the reward on 40 of the 114 retail tasks. If it moves
+    between the week 1 harvest and the week 3 student runs, teacher and students
+    were marked by different graders and every reward delta in the table is
+    partly the grader changing.
+    """
+    if cfg.judge != reference:
+        diffs = [
+            f"    {field}: {getattr(cfg.judge, field)!r} != {getattr(reference, field)!r}"
+            for field in type(reference).model_fields
+            if getattr(cfg.judge, field) != getattr(reference, field)
+        ]
+        raise InvariantViolation(
+            f"judge config drifted in '{cfg.name}':\n"
+            + "\n".join(diffs)
+            + "\n  The judge must be frozen across all configs, or teacher and "
+            "students are scored by different graders."
+        )
+
+
+def _bare_model(name: str) -> str:
+    """Model id without its litellm provider prefix, for comparing across fields.
+
+    teacher.model is written bare ('nvidia/...') because harvest.py adds the
+    prefix; judge.model carries it. Comparing the raw strings would miss a match.
+    """
+    return name.split("/", 1)[1] if name.lower().startswith("openrouter/") else name
+
+
+def assert_judge_not_teacher(cfg: ExperimentConfig) -> None:
+    """The teacher may not grade its own trajectories.
+
+    harvest.rejection_sampling keeps only successful episodes, so the judge is
+    the filter that decides what becomes training data. A filter that is the same
+    model as the thing it filters is marking its own homework, and its failure
+    mode — systematically approving its own style of answer — is invisible in the
+    output. Structural, not a convention, because it would never look wrong.
+    """
+    if _bare_model(cfg.judge.model) == _bare_model(cfg.teacher.model):
+        raise InvariantViolation(
+            f"judge.model and teacher.model are both '{cfg.teacher.model}'. The teacher "
+            "cannot grade its own trajectories: rejection sampling would filter the "
+            "training set using the model that produced it. Pick a different judge."
+        )
+
+
 def assert_results_appendable(path: str | Path) -> None:
     """Results append, never overwrite (pre-launch checklist)."""
     path = Path(path)
@@ -185,6 +233,7 @@ def check_all(
     cfg: ExperimentConfig,
     *,
     reference_simulator: SimulatorConfig | None = None,
+    reference_judge: JudgeConfig | None = None,
 ) -> list[str]:
     """Every check that needs no disk or network. Run at the top of each script.
 
@@ -194,6 +243,7 @@ def check_all(
     assert_teacher_model_pinned(cfg)
     assert_seed_discipline(cfg)
     assert_no_catalog_in_train_config(cfg)
+    assert_judge_not_teacher(cfg)
     assert_results_appendable(cfg.paths.results_dir / f"{cfg.name}.jsonl")
 
     passed = [
@@ -201,9 +251,13 @@ def check_all(
         "teacher_model_pinned",
         "seed_discipline",
         "no_catalog_in_train_config",
+        "judge_not_teacher",
         "results_appendable",
     ]
     if reference_simulator is not None:
         assert_simulator_frozen(cfg, reference_simulator)
         passed.append("simulator_frozen")
+    if reference_judge is not None:
+        assert_judge_frozen(cfg, reference_judge)
+        passed.append("judge_frozen")
     return passed

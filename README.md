@@ -18,18 +18,18 @@ three catalogs.
 
 | Model | Catalog | Step agreement | Tool-name acc. | Task success | pass^5 | Cost / 100 tasks | p99 latency |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Teacher (baseline) | 15 | — | — | | | | — |
+| Teacher (baseline) | 16 | — | — | | | | — |
 | Teacher (baseline) | 40 | — | — | | | | — |
 | Teacher (baseline) | 80 | — | — | | | | — |
 | Qwen2.5-0.5B zero-shot | 80 | | | | | | |
-| Qwen2.5-0.5B + LoRA | 15 | | | | | | |
+| Qwen2.5-0.5B + LoRA | 16 | | | | | | |
 | Qwen2.5-0.5B + LoRA | 40 | | | | | | |
 | Qwen2.5-0.5B + LoRA | 80 | | | | | | |
 | Qwen2.5-1.5B zero-shot | 80 | | | | | | |
-| Qwen2.5-1.5B + LoRA | 15 | | | | | | |
+| Qwen2.5-1.5B + LoRA | 16 | | | | | | |
 | Qwen2.5-1.5B + LoRA | 40 | | | | | | |
 | Qwen2.5-1.5B + LoRA | 80 | | | | | | |
-| Qwen2.5-3B + LoRA (Stage B) | 15 | | | | | | |
+| Qwen2.5-3B + LoRA (Stage B) | 16 | | | | | | |
 | Qwen2.5-3B + LoRA (Stage B) | 40 | | | | | | |
 | Qwen2.5-3B + LoRA (Stage B) | 80 | | | | | | |
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import random
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -33,10 +34,25 @@ except ImportError:  # loguru only present once tau2 is installed
     pass
 
 from src.cli import build_parser, resolve
+from src.hashing import short
 from src.invariants import check_all
+from src.judge import install as install_judge
 from src.throttle import DailyQuotaExhausted, RateLimiter, install
 
 DOMAIN = "retail"
+
+# MEASURED 2026-09-11 over 59 real episodes: 15.7 requests/episode mean, 22 max.
+#
+# The guard below budgets with the MAX, not the mean, because an episode killed
+# at 90% has still spent everything it spent. The first full run ended 73 requests
+# — 7% of a day — inside episodes that were abandoned mid-flight, and that is the
+# whole cost this constant exists to avoid.
+#
+# Deliberately NOT a config field: it is a tuning number that wants re-measuring
+# as episodes get longer, and everything in TeacherConfig is inside
+# teacher_fingerprint(), so putting it there would orphan an in-progress harvest
+# every time the estimate was refined.
+MAX_REQUESTS_PER_EPISODE = 22
 
 
 def load_task_ids() -> list[str]:
@@ -96,6 +112,79 @@ def build_run_config(cfg, task_ids: list[str], temperature: float, seed: int, sa
     )
 
 
+def batch_path(traj_dir: Path, session: str, rep: int, index: int) -> Path:
+    """Where one tau2 batch is saved. Unique per session, never reused.
+
+    The index counts batches of the PENDING pool, which restarts at 0 every
+    session. Named by index alone, day 2's rep1-batch000 (tasks 61, 94, 101, 0)
+    collided with day 1's file of that name (tasks 22, 63, 79, 108), and tau2
+    stopped on an interactive y/n prompt where both answers raise: n is a
+    FileExistsError, y is "Tasks were removed from the task set". Found
+    2026-09-13. Naming by task ids would not fix it either — a batch retried after
+    failing holds the same tasks as the file it failed in. The session stamp does.
+
+    Earlier files are never touched, so the trajectory_file in every logged
+    record keeps pointing at the episodes it describes.
+    """
+    return traj_dir / f"rep{rep}-{session}-batch{index:03d}.json"
+
+
+def episode_reward(sim) -> float | None:
+    """The reward tau2 scored, or None when the episode never produced one.
+
+    None is not "scored zero". tau2 returns a SimulationRun for a task that
+    failed every attempt — INFRASTRUCTURE_ERROR, no messages, reward_info unset —
+    and the caller must tell that apart from a genuine 0.0, because one is a cell
+    to record and the other is a cell to retry.
+    """
+    return getattr(getattr(sim, "reward_info", None), "reward", None)
+
+
+def affordable_episodes(limiter: RateLimiter, wanted: int) -> int:
+    """How many of `wanted` episodes today's remaining budget can fund in full.
+
+    Why this exists rather than just letting limiter.acquire() raise: tau2 runs
+    each task inside `except Exception`, so DailyQuotaExhausted never reaches the
+    handler in main(). Instead tau2 reads it as a task failure, burns its two
+    retries, marks the task INFRASTRUCTURE_ERROR and moves to the next batch —
+    which on 2026-09-11 marched through all 25 remaining batches printing errors
+    for a budget that was already gone. The limiter cannot fix that from its side;
+    the runner has to stop asking.
+    """
+    remaining = limiter.remaining_today
+    if remaining is None:  # no daily cap configured
+        return wanted
+    return min(wanted, remaining // MAX_REQUESTS_PER_EPISODE)
+
+
+def _report_failures(failed: list[tuple[int, float, str, str]]) -> None:
+    """Say out loud what did not get recorded.
+
+    These cells are deliberately absent from the run log, so the next run picks
+    them up. That is only safe if the session that dropped them says so — a
+    silent drop is the exact failure this whole module is arranged to avoid.
+    """
+    if not failed:
+        return
+    print(f"[harvest] {len(failed)} episode(s) failed and were NOT logged; the next run retries.")
+
+    # Grouped, not one line per episode. The first version printed 103 identical
+    # "infrastructure_error" lines, which said nothing about what had happened.
+    reasons: dict[str, int] = {}
+    for *_, reason in failed:
+        reasons[reason] = reasons.get(reason, 0) + 1
+    for reason, count in sorted(reasons.items(), key=lambda kv: -kv[1]):
+        print(f"[harvest]   {reason}: {count}")
+
+    by_rep: dict[tuple[int, float], list[str]] = {}
+    for rep, temp, tid, _ in failed:
+        by_rep.setdefault((rep, temp), []).append(tid)
+    for (rep, temp), tids in sorted(by_rep.items()):
+        head = ", ".join(tids[:8])
+        more = f", +{len(tids) - 8} more" if len(tids) > 8 else ""
+        print(f"[harvest]   rep{rep} temp={temp}: {len(tids)} tasks ({head}{more})")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser("Harvest teacher trajectories from tau2-bench retail")
     parser.add_argument(
@@ -117,6 +206,10 @@ def main(argv: list[str] | None = None) -> int:
 
     limiter = RateLimiter(cfg.teacher.requests_per_minute, cfg.teacher.requests_per_day)
     install(limiter)
+    # Before any episode runs: tau2's NL-assertion judge defaults to gpt-4.1 and
+    # we hold no OpenAI key, which silently killed 33% of the first harvest.
+    install_judge(cfg.judge)
+    print(f"[harvest] judge: {cfg.judge.model} @ temp={cfg.judge.temperature}")
 
     all_ids = load_task_ids()
     train_ids, eval_ids = split_task_ids(
@@ -155,8 +248,17 @@ def main(argv: list[str] | None = None) -> int:
         if (tid, rep) not in done
     ]
 
-    traj_dir = cfg.paths.trajectories_dir / f"{cfg.name}-{args.mode}{suffix}"
+    # Nested under the teacher fingerprint, because batch filenames restart at 000
+    # for every run. Without this, changing the judge (or anything else the harvest
+    # is keyed on) would overwrite rep0-batch000.json while the old log records
+    # still pointed at that name — auditable records aimed at the wrong episodes.
+    traj_dir = (
+        cfg.paths.trajectories_dir
+        / f"{cfg.name}-{args.mode}{suffix}"
+        / short(cfg.teacher_fingerprint())
+    )
     traj_dir.mkdir(parents=True, exist_ok=True)
+    session = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
 
     total = len(targets) * len(variants)
     print(f"[harvest] mode={args.mode} tasks={len(targets)} variants={len(variants)}")
@@ -169,7 +271,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.dry_run:
         print("[harvest] DRY RUN — no API calls made.")
-        print(f"[harvest] would run {len(pending)} episodes, ~{len(pending) * 13} requests")
+        print(
+            f"[harvest] would run {len(pending)} episodes, "
+            f"~{round(len(pending) * 15.7)} requests (measured mean; up to {len(pending) * MAX_REQUESTS_PER_EPISODE} worst case)"
+        )
         by_rep: dict[int, int] = {}
         for _, rep, _, _ in pending:
             by_rep[rep] = by_rep.get(rep, 0) + 1
@@ -180,12 +285,28 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ran = 0
+    failed: list[tuple[int, float, str, str]] = []
     try:
         for rep, temp, seed in variants:
             batch_pool = [t for (t, r, _, _) in pending if r == rep]
             for i in range(0, len(batch_pool), args.batch):
                 chunk = batch_pool[i : i + args.batch]
-                save_to = traj_dir / f"rep{rep}-batch{i // args.batch:03d}.json"
+                # Never start an episode today's budget cannot finish. See
+                # affordable_episodes: the limiter's own exception cannot stop the
+                # run, because tau2 swallows it.
+                affordable = affordable_episodes(limiter, len(chunk))
+                if affordable == 0:
+                    raise DailyQuotaExhausted(
+                        f"{limiter.used_today}/{cfg.teacher.requests_per_day} requests used; "
+                        f"stopping with {limiter.remaining_today} left rather than starting an "
+                        f"episode that needs up to {MAX_REQUESTS_PER_EPISODE}."
+                    )
+                chunk = chunk[:affordable]
+                save_to = batch_path(traj_dir, session, rep, i // args.batch)
+                if save_to.exists():
+                    # Fail loudly instead of reaching tau2's resume prompt, which
+                    # would hang an unattended run on input() for the whole night.
+                    raise FileExistsError(f"{save_to} already exists; refusing to reuse it")
                 run_cfg = build_run_config(cfg, chunk, temp, seed, save_to)
 
                 from tau2.registry import registry
@@ -194,9 +315,22 @@ def main(argv: list[str] | None = None) -> int:
                 tasks = [t for t in registry.get_tasks_loader(DOMAIN)() if str(t.id) in chunk]
                 results = run_tasks(run_cfg, tasks, save_path=save_to, console_display=False)
 
+                logged = 0
                 for sim in getattr(results, "simulations", []):
                     tid = str(getattr(sim, "task_id", ""))
-                    reward = getattr(getattr(sim, "reward_info", None), "reward", None)
+                    reward = episode_reward(sim)
+                    if reward is None:
+                        # When a task fails every attempt, tau2 still returns a
+                        # SimulationRun — INFRASTRUCTURE_ERROR, no messages, no
+                        # reward_info. Logging it would mark the cell complete, so
+                        # completed_cells() would skip it forever and the harvest
+                        # would finish short of n_tasks without printing an error.
+                        # An episode that produced nothing stays unlogged, so the
+                        # next run retries it. Cost of getting this wrong, measured
+                        # 2026-09-10: 18 of 54 train tasks written off in silence.
+                        reason = getattr(getattr(sim, "termination_reason", None), "value", "?")
+                        failed.append((rep, temp, tid, reason))
+                        continue
                     log.append(
                         task_id=tid,
                         seed=rep,
@@ -209,17 +343,22 @@ def main(argv: list[str] | None = None) -> int:
                             "n_messages": len(getattr(sim, "messages", []) or []),
                         },
                     )
+                    logged += 1
                     ran += 1
+                dropped = len(chunk) - logged
+                note = f", {dropped} failed (left unlogged to retry)" if dropped else ""
                 print(
-                    f"[harvest] rep{rep} temp={temp} +{len(chunk)} | "
+                    f"[harvest] rep{rep} temp={temp} +{logged}{note} | "
                     f"{limiter.used_today} used, {limiter.remaining_today} left"
                 )
     except DailyQuotaExhausted as exc:
         print(f"\n[harvest] daily budget spent: {exc}")
         print(f"[harvest] {ran} episodes this session. Rerun tomorrow to continue.")
+        _report_failures(failed)
         return 0
 
     print(f"\n[harvest] done. {ran} episodes this session, trajectories in {traj_dir}")
+    _report_failures(failed)
     return 0
 
 
