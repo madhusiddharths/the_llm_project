@@ -22,7 +22,9 @@ Memory on a T4 (16 GB, no bf16): the base model runs in fp16 under autocast,
 LoRA weights stay fp32, a GradScaler handles fp16 gradients, and gradient
 checkpointing is on. The loss computes logits only at the ~10% of positions
 that carry a label, so the 151,936-way vocabulary never materialises for all
-12k positions (that alone would be ~7 GB in fp32).
+12k positions (that alone would be ~7 GB in fp32). K/V heads are expanded to
+the query count before SDPA, without which attention falls back to the math
+backend and OOMs — see force_sdpa_kv_expansion().
 
 Checkpoints each epoch to --output-dir and, with --hub-repo, to the HF Hub
 (checkpoints/epoch-N/), and resumes from the latest one, because Kaggle
@@ -200,10 +202,40 @@ def wrap_lora(cfg: ExperimentConfig, base_model):
     return model
 
 
+def force_sdpa_kv_expansion(device) -> None:
+    """Expand K/V to the query head count before SDPA, on pre-Ampere GPUs only.
+
+    Qwen2.5 is grouped-query: 14 query heads against 2 KV heads at 0.5B, 12
+    against 2 at 1.5B. Transformers hands those to SDPA unexpanded with
+    enable_gqa=True, and on a T4 (sm75) no fused kernel will take that: flash
+    needs sm80, and the memory-efficient kernel refuses broadcast GQA ("both
+    fused kernels require query, key and value to have the same num_heads").
+    SDPA then falls back to the math backend, which materialises the full
+    [1, 14, 12176, 12176] fp16 score matrix — 7.7 GiB for a single worst-case
+    episode, and an OOM on a 16 GB card.
+
+    repeat_kv costs ~22 MB and keeps SDPA on the memory-efficient kernel. The
+    arithmetic is identical; only the layout changes. Measured on a Kaggle T4,
+    2026-09-23, one forward+backward at 12,176 tokens: 5.43 GiB peak at 0.5B
+    and 8.38 GiB at 1.5B, against 14.56 GiB of card.
+
+    Ampere and later have the flash kernel, which handles GQA natively and is
+    faster than expanding, so they are left alone.
+    """
+    import torch
+
+    if device.type != "cuda" or torch.cuda.get_device_capability(device) >= (8, 0):
+        return
+    from transformers.integrations import sdpa_attention
+
+    sdpa_attention.use_gqa_in_sdpa = lambda *_args, **_kwargs: False
+
+
 def load_base_model(cfg: ExperimentConfig, device):
     import torch
     from transformers import AutoModelForCausalLM
 
+    force_sdpa_kv_expansion(device)
     dtype = torch.float16 if device.type == "cuda" else torch.float32
     model = AutoModelForCausalLM.from_pretrained(
         cfg.model.base_model, torch_dtype=dtype, attn_implementation="sdpa"

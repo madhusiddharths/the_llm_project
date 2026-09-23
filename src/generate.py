@@ -120,6 +120,12 @@ def run_hf(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int) -
     import transformers
     from transformers import AutoModelForCausalLM, AutoTokenizer
 
+    # Catalog-80 prompts reach ~20k tokens, well past where unexpanded GQA
+    # forces SDPA onto the math backend and OOMs a T4. vLLM has its own kernels
+    # and is unaffected; this fallback path goes through transformers.
+    from src.train import force_sdpa_kv_expansion
+
+    force_sdpa_kv_expansion(torch.device("cuda"))
     tok = AutoTokenizer.from_pretrained(cfg.model.base_model)
     model = AutoModelForCausalLM.from_pretrained(cfg.model.base_model, torch_dtype=torch.float16)
     if adapter is not None:
