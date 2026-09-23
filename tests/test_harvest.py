@@ -114,3 +114,32 @@ def test_batch_files_sort_in_the_order_they_were_written(tmp_path):
         batch_path(tmp_path, "20260912T000400Z", 1, 0).name,
     ]
     assert sorted(names) == [names[2], names[1], names[0]]
+
+
+# --- padded catalogs (D7) ------------------------------------------------------
+
+from src.harvest import MAX_CONSECUTIVE_EMPTY_BATCHES, order_agent_tools  # noqa: E402
+
+
+def _schema(name):
+    return {"type": "function", "function": {"name": name, "parameters": {}}}
+
+
+def test_the_agent_sees_the_catalog_order_with_real_native_tools():
+    env = {"a": "TOOL_A", "b": "TOOL_B"}
+    catalog = [_schema("x"), _schema("b"), _schema("a"), _schema("y")]
+    ordered = order_agent_tools(env, catalog, lambda t: f"stub:{t['function']['name']}")
+    assert ordered == ["stub:x", "TOOL_B", "TOOL_A", "stub:y"]
+
+
+def test_a_catalog_missing_a_native_tool_is_refused():
+    import pytest
+
+    with pytest.raises(ValueError, match="missing native tools"):
+        order_agent_tools({"a": 1, "b": 2}, [_schema("a")], lambda t: t)
+
+
+def test_the_empty_batch_breaker_trips_before_a_days_quota_is_gone():
+    """2026-09-16 burned 981 requests on failures; the breaker caps that at
+    two batches of four episodes, worst case ~180 requests."""
+    assert MAX_CONSECUTIVE_EMPTY_BATCHES * 4 * MAX_REQUESTS_PER_EPISODE < 200

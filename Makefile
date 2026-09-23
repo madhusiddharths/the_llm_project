@@ -4,7 +4,10 @@
 # teacher harvest are yours to launch (division-of-labor.md).
 
 PY := .venv/bin/python
-SCRIPTS := harvest train eval_forced eval_free router_node taxonomy
+# Offline, <2 min, no GPU and no API quota. The other smoke paths need hardware
+# or quota and run where the real job runs: train/generate/eval_free --smoke on
+# Kaggle (notebooks/kaggle_*.ipynb), harvest --smoke against the live API.
+SCRIPTS := eval_forced router_node taxonomy
 CONFIG ?= configs/qwen05b.yaml
 
 .PHONY: help setup check lint test smoke preflight prompt-hash phoenix tracking harvest harvest-plan clean
@@ -12,7 +15,7 @@ CONFIG ?= configs/qwen05b.yaml
 help:
 	@echo "setup        create .venv and install local deps"
 	@echo "check        lint + tests (the Week 0 acceptance test)"
-	@echo "smoke        run every script's --smoke path (<2 min total)"
+	@echo "smoke        run the offline --smoke paths (<2 min; GPU/API smokes run on Kaggle)"
 	@echo "preflight    pre-launch checklist; run before any job over an hour"
 	@echo "phoenix      start the local Phoenix collector on :6006 (blocks)"
 	@echo "tracking     verify W&B and Phoenix are both live"

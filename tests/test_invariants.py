@@ -47,8 +47,9 @@ def test_serializer_change_alone_is_caught(monkeypatch):
     cfg = load_config(REAL)
     original = prompts.serialize_state
 
-    def altered(*, system, tools, messages):
-        return original(system=system, tools=tools, messages=messages).replace("\n", "\n\n")
+    def altered(*, system, tools, messages, tool_format="compact"):
+        text = original(system=system, tools=tools, messages=messages, tool_format=tool_format)
+        return text.replace("\n", "\n\n")
 
     monkeypatch.setattr(prompts, "serialize_state", altered)
     with pytest.raises(InvariantViolation, match="prompt template hash mismatch"):

@@ -19,6 +19,8 @@ moving." Nothing in this file gets built before Oct 11.
 These are listed so that re-proposing one is visibly a decision to reverse,
 rather than a new idea.
 
+**Reversed, 2026-09-22:** multi-LoRA serving returns in **v2 only**, as Stage F2 of the extension plan (Part II of the plan, X6). It is a serving measurement: throughput and latency with mixed adapters on one vLLM instance. It is not an adapter-swapping router. It stays out of v1.
+
 ---
 
 ## Parked ideas

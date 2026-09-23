@@ -3,8 +3,8 @@
     "Harvest log": "results/harvest-harvest.jsonl",
     "Teacher": "nvidia/nemotron-3-ultra-550b-a55b:free",
     "Teacher fingerprint": "4138d3faa22a",
-    "Generated": "2026-09-22 01:21 UTC",
-    "Token counts": "estimated at 3.5 chars/token (tokenizer not cached)"
+    "Generated": "2026-09-22 03:08 UTC",
+    "Token counts": "Qwen/Qwen2.5-0.5B-Instruct tokenizer"
   },
   "episodes": {
     "logged_cells": 162,
@@ -98,69 +98,69 @@
     }
   },
   "prompt_lengths": {
-    "system_prompt_tokens": 2016,
-    "native_tools_tokens": 2218,
-    "mean_tool_tokens": 139,
+    "system_prompt_tokens": 1487,
+    "native_tools_tokens": 2000,
+    "mean_tool_tokens": 125,
     "variants": {
       "decision_catalog16": {
         "n": 1099,
-        "mean": 5977.5,
-        "p50": 5689.0,
-        "p95": 8567.0,
-        "max": 11335.0,
+        "mean": 5565.6,
+        "p50": 5197.0,
+        "p95": 8969.0,
+        "max": 11898.0,
         "over_2048": 1.0,
-        "over_4096": 1.0,
-        "over_8192": 0.079,
+        "over_4096": 0.684,
+        "over_8192": 0.093,
         "over_12288": 0.0,
         "over_16384": 0.0
       },
       "decision_catalog16_no_policy": {
         "n": 1099,
-        "mean": 3961.5,
-        "p50": 3673.0,
-        "p95": 6551.0,
-        "max": 9319.0,
+        "mean": 4078.6,
+        "p50": 3710.0,
+        "p95": 7482.0,
+        "max": 10411.0,
         "over_2048": 1.0,
-        "over_4096": 0.402,
-        "over_8192": 0.003,
+        "over_4096": 0.427,
+        "over_8192": 0.02,
         "over_12288": 0.0,
         "over_16384": 0.0
       },
       "episode_catalog16": {
         "n": 108,
-        "mean": 8007.5,
-        "p50": 7922.0,
-        "p95": 10229.0,
-        "max": 11643.0,
+        "mean": 8046.6,
+        "p50": 7911.0,
+        "p95": 10890.0,
+        "max": 12176.0,
         "over_2048": 1.0,
         "over_4096": 1.0,
-        "over_8192": 0.407,
+        "over_8192": 0.454,
         "over_12288": 0.0,
         "over_16384": 0.0
       },
       "decision_catalog40_extrapolated": {
         "n": 1099,
-        "mean": 9304.5,
-        "p50": 9016.0,
-        "p95": 11894.0,
-        "max": 14662.0,
+        "mean": 8565.6,
+        "p50": 8197.0,
+        "p95": 11969.0,
+        "max": 14898.0,
         "over_2048": 1.0,
         "over_4096": 1.0,
-        "over_8192": 0.692,
-        "over_12288": 0.032,
+        "over_8192": 0.5,
+        "over_12288": 0.033,
         "over_16384": 0.0
       },
       "decision_catalog80_extrapolated": {
         "n": 1099,
-        "mean": 14849.5,
-        "p50": 14561.0,
-        "p95": 17439.0,
-        "max": 20207.0,
+        "mean": 13565.6,
+        "p50": 13197.0,
+        "p95": 16969.0,
+        "max": 19898.0,
         "over_2048": 1.0,
         "over_4096": 1.0,
         "over_8192": 1.0,
-        "over_12288": 1.0,
-        "over_16384": 0.157
+        "over_12288": 0.658,
+        "over_16384": 0.082
       }
     }
   }

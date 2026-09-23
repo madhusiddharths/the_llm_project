@@ -1,0 +1,21 @@
+{
+  "source": "results/forced-teacher-c16.jsonl",
+  "n_steps": 1416,
+  "n_wrong": 0,
+  "counts": {
+    "hallucinated_tool": 0,
+    "wrong_tool_neighbor": 0,
+    "wrong_tool_unrelated": 0,
+    "right_tool_wrong_args": 0,
+    "premature_termination": 0,
+    "malformed_output": 0,
+    "call_instead_of_reply": 0
+  },
+  "share_of_wrong_tool_call_steps": {
+    "hallucinated_tool": null,
+    "wrong_tool_neighbor": null,
+    "wrong_tool_unrelated": null,
+    "right_tool_wrong_args": null,
+    "premature_termination": null
+  }
+}

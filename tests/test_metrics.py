@@ -38,8 +38,18 @@ def test_list_order_matters():
     assert not calls_equal(call("f", ids=["1", "2"]), call("f", ids=["2", "1"]), strict=False)
 
 
-def test_normalize_recurses():
-    assert normalize({"A": [" X ", {"B": "Y"}]}) == {"a": ["x", {"b": "y"}]}
+def test_normalize_recurses_into_values_but_leaves_keys_exact():
+    """Keys are argument names; tau2 rejects Order_ID where it wants order_id."""
+    assert normalize({"A": [" X ", {"B": "Y"}]}) == {"A": ["x", {"B": "y"}]}
+    assert not calls_equal(call("f", Order_ID="#W1"), call("f", order_id="#W1"), strict=False)
+
+
+def test_tool_names_compare_exactly_even_when_normalized():
+    """One rule for names, so step agreement can never exceed tool-name accuracy."""
+    pred = call("Cancel_Pending_Order", order_id="#W1", reason="ordered by mistake")
+    assert not calls_equal(REF, pred, strict=False)
+    s = score_step(REF, Parsed(pred), CATALOG)
+    assert not s.name_match and not s.normalized_match and s.hallucinated_tool
 
 
 def _score(completion, reference=REF):
@@ -96,3 +106,11 @@ def test_summary_computes_call_metrics_over_call_steps_only():
     assert s["step_agreement"] == 0.5
     assert s["decision_type_accuracy"] == pytest.approx(2 / 3, abs=1e-4)
     assert s["reply_step_decision_accuracy"] == 1.0
+
+
+def test_hallucination_rate_is_per_predicted_tool_call():
+    rows = [
+        _score('<tool_call>\n{"name": "made_up", "arguments": {}}\n</tool_call>'),
+        _score("a reply"),  # not a tool call: outside the denominator
+    ]
+    assert summarize(rows)["hallucinated_tool_rate"] == 1.0

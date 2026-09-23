@@ -25,6 +25,13 @@ every argument description survives, because some carry the only statement of a
 valid value (cancel_pending_order's reason must be 'no longer needed' or
 'ordered by mistake'; order ids start with '#').
 
+The compact rendering therefore slightly departs from what zero-shot Qwen saw
+in training, which could handicap the Gate 2 zero-shot baseline and inflate
+the fine-tuning gain (review 2026-09-22). tool_format="json" renders tools the
+way Qwen's own template does (one JSON schema per line), for exactly one
+purpose: measuring that handicap on zero-shot models in forced mode. Training
+always uses "compact"; build_sft.py does not expose the choice.
+
 The action space mirrors tau2's agent contract: each turn is a reply OR a tool
 call (src/trajectories.py, module note 2).
 """
@@ -35,7 +42,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from src.hashing import hash_obj
 from src.trajectories import Action, ToolCall, decision_steps, parse_action
@@ -58,6 +65,9 @@ For each function call, return a json object with function name and arguments wi
 <tool_call>
 {{"name": <function-name>, "arguments": <args-json-object>}}
 </tool_call>"""
+
+ToolFormat = Literal["compact", "json"]
+TOOL_FORMATS: tuple[ToolFormat, ...] = ("compact", "json")
 
 _TOOL_CALL = re.compile(r"<tool_call>\s*(.*?)\s*</tool_call>", re.DOTALL)
 
@@ -103,17 +113,44 @@ def render_tool(tool: Mapping[str, Any]) -> str:
     if description := _squash(fn.get("description")):
         lines.append(f"  {description}")
     for name, prop in props.items():
-        note = _squash(prop.get("description"))
-        if "enum" in prop:
-            note = f"{note} One of: {', '.join(json.dumps(v) for v in prop['enum'])}.".strip()
-        if note:
-            lines.append(f"  - {name}: {note}")
+        lines.extend(_argument_notes(name, prop))
     return "\n".join(lines)
 
 
-def render_system(system_prompt: str, tools: Sequence[Mapping[str, Any]]) -> str:
+def _argument_notes(path: str, prop: Mapping[str, Any]) -> list[str]:
+    """One line per described argument, recursing into nested objects.
+
+    Nested fields render as parent.child (and items[].child for arrays of
+    objects), so a description inside a nested schema is never dropped. No
+    retail tool nests, but BFCL distractors do.
+    """
+    note = _squash(prop.get("description"))
+    if "enum" in prop:
+        note = f"{note} One of: {', '.join(json.dumps(v) for v in prop['enum'])}.".strip()
+    lines = [f"  - {path}: {note}"] if note else []
+    for child, sub in (prop.get("properties") or {}).items():
+        lines.extend(_argument_notes(f"{path}.{child}", sub))
+    items = prop.get("items") or {}
+    for child, sub in (items.get("properties") or {}).items():
+        lines.extend(_argument_notes(f"{path}[].{child}", sub))
+    return lines
+
+
+def render_tools(tools: Sequence[Mapping[str, Any]], tool_format: ToolFormat = "compact") -> str:
+    """The <tools> block body. "json" is Qwen's own rendering (its template's
+    `tool | tojson`: default separators, key order kept, non-ASCII kept)."""
+    if tool_format == "compact":
+        return "\n".join(render_tool(t) for t in tools)
+    if tool_format == "json":
+        return "\n".join(json.dumps(dict(t), ensure_ascii=False) for t in tools)
+    raise ValueError(f"unknown tool_format {tool_format!r}")
+
+
+def render_system(
+    system_prompt: str, tools: Sequence[Mapping[str, Any]], tool_format: ToolFormat = "compact"
+) -> str:
     """The system turn's content: tau2's instructions and policy, then the tools."""
-    rendered = "\n".join(render_tool(t) for t in tools)
+    rendered = render_tools(tools, tool_format)
     return f"{system_prompt.strip()}\n\n{TOOLS_TEMPLATE.format(tools=rendered)}"
 
 
@@ -189,7 +226,10 @@ def _turn(role: str, content: str) -> str:
 
 
 def _pieces(
-    system: str, tools: Sequence[Mapping[str, Any]], messages: Sequence[Mapping[str, Any]]
+    system: str,
+    tools: Sequence[Mapping[str, Any]],
+    messages: Sequence[Mapping[str, Any]],
+    tool_format: ToolFormat = "compact",
 ) -> list[tuple[str, int | None]]:
     """The whole conversation as (text, message index) pieces.
 
@@ -198,7 +238,8 @@ def _pieces(
     one user turn, as in Qwen's template. serialize_state and serialize_episode
     both read this one list, which is what makes them agree by construction.
     """
-    pieces: list[tuple[str, int | None]] = [(_turn("system", render_system(system, tools)), None)]
+    system_turn = _turn("system", render_system(system, tools, tool_format))
+    pieces: list[tuple[str, int | None]] = [(system_turn, None)]
     i = 0
     while i < len(messages):
         message = messages[i]
@@ -229,13 +270,14 @@ def serialize_state(
     system: str,
     tools: Sequence[Mapping[str, Any]],
     messages: Sequence[Mapping[str, Any]],
+    tool_format: ToolFormat = "compact",
 ) -> str:
     """The exact prompt the model sees before its next turn.
 
     Keyword-only on purpose: a positional swap of tools and messages would still
     produce a plausible-looking prompt and quietly poison a whole run.
     """
-    body = "".join(text for text, _ in _pieces(system, tools, messages))
+    body = "".join(text for text, _ in _pieces(system, tools, messages, tool_format))
     return f"{body}{IM_START}assistant\n"
 
 
@@ -292,6 +334,10 @@ _GOLDEN: dict[str, Any] = {
                         "order_id": {"type": "string", "description": "Like '#W1'."},
                         "reason": {"type": "string", "enum": ["no longer needed", "mistake"]},
                         "item_ids": {"type": "array", "items": {"type": "string"}},
+                        "address": {
+                            "type": "object",
+                            "properties": {"city": {"type": "string", "description": "City."}},
+                        },
                     },
                     "required": ["order_id", "reason"],
                 },
@@ -327,6 +373,7 @@ def template_hash() -> str:
     return hash_obj(
         {
             "state": serialize_state(**_GOLDEN),
+            "state_json_tools": serialize_state(**_GOLDEN, tool_format="json"),
             "episode": [[s.text, s.train] for s in serialize_episode(**_GOLDEN)],
         }
     )

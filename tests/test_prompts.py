@@ -13,6 +13,7 @@ import pytest
 from src.prompts import (
     _GOLDEN,
     IM_END,
+    TOOL_FORMATS,
     parse_completion,
     render_action,
     render_tool,
@@ -134,7 +135,8 @@ def test_compact_tool_keeps_every_description_and_marks_optionals():
     tool = _GOLDEN["tools"][0]
     text = render_tool(tool)
     assert text.splitlines()[0] == (
-        "cancel_order(order_id: string, reason: string, item_ids?: array[string])"
+        "cancel_order(order_id: string, reason: string, item_ids?: array[string], "
+        "address?: object{city: string})"
     )
     assert "Cancel a pending order." in text  # wrapped description squashed onto one line
     assert "- order_id: Like '#W1'." in text
@@ -151,3 +153,48 @@ def test_an_unknown_role_is_an_error():
     g["messages"] = [*g["messages"][:2], {"role": "system", "content": "x"}]
     with pytest.raises(ValueError, match="unsupported role"):
         serialize_state(**g)
+
+
+def test_nested_argument_descriptions_are_rendered():
+    tool = {
+        "name": "ship",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "dest": {
+                    "type": "object",
+                    "description": "Where to.",
+                    "properties": {"zip": {"type": "string", "description": "Postal code."}},
+                },
+                "boxes": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {"kg": {"type": "number", "description": "Weight."}},
+                    },
+                },
+            },
+        },
+    }
+    text = render_tool(tool)
+    assert "- dest: Where to." in text
+    assert "- dest.zip: Postal code." in text
+    assert "- boxes[].kg: Weight." in text
+
+
+def test_json_tool_format_is_qwens_own_rendering():
+    g = _golden()
+    prompt = serialize_state(**g, tool_format="json")
+    import json
+
+    assert json.dumps(g["tools"][0], ensure_ascii=False) in prompt
+    assert "cancel_order(order_id" not in prompt  # no compact signature
+    # everything after the system turn is identical across formats
+    compact = serialize_state(**g)
+    assert compact.split("<|im_end|>", 1)[1] == prompt.split("<|im_end|>", 1)[1]
+
+
+def test_unknown_tool_format_is_refused():
+    assert TOOL_FORMATS == ("compact", "json")
+    with pytest.raises(ValueError, match="tool_format"):
+        serialize_state(**_golden(), tool_format="yaml")

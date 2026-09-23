@@ -12,6 +12,14 @@ recomputed, because a repeated episode is spent quota.
 
     python src/harvest.py --config configs/qwen05b.yaml --smoke
     python src/harvest.py --config configs/qwen05b.yaml
+    python src/harvest.py --config configs/qwen05b.yaml --mode baseline --catalog 80
+
+--catalog N (baseline mode only; D7, 2026-09-22) shows the teacher the pinned
+N-tool catalog: native tools plus BFCL distractors, in the catalog's own order.
+The environment is unchanged, so a call to a distractor comes back as tau2's
+"not found" error, just as a hallucinated tool would. Each catalog gets its own
+log (harvest-baseline-c80.jsonl) and trajectory directory, keyed to the teacher
+fingerprint plus the catalog hash, so the native baseline is never touched.
 """
 
 from __future__ import annotations
@@ -20,6 +28,7 @@ import random
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
@@ -54,6 +63,19 @@ DOMAIN = "retail"
 # every time the estimate was refined.
 MAX_REQUESTS_PER_EPISODE = 22
 
+# Stop when this many batches in a row log nothing. 2026-09-16: the teacher's
+# only provider returned 404 for a whole day and the run burned 981 requests on
+# 166 failed episodes. 2026-09-20: the laptop woke without network and 40
+# episodes failed in six minutes. Either way every remaining episode would fail
+# too, and each one still costs quota. Two batches (~8 episodes) is enough
+# evidence; an unlucky single task never empties a whole batch.
+MAX_CONSECUTIVE_EMPTY_BATCHES = 2
+NATIVE_CATALOG = 16
+
+
+class ProviderDown(RuntimeError):
+    """Consecutive batches produced nothing: stop before spending more quota."""
+
 
 def load_task_ids() -> list[str]:
     """Every retail task id, in the order tau2 ships them."""
@@ -78,14 +100,71 @@ def split_task_ids(
     return shuffled[:n_train], shuffled[n_train : n_train + n_eval]
 
 
-def build_run_config(cfg, task_ids: list[str], temperature: float, seed: int, save_to: Path):
+def order_agent_tools(env_tools: dict[str, Any], catalog: list[dict[str, Any]], make_stub) -> list:
+    """The agent's tool list in catalog order: the environment's real Tool object
+    for each native name, and make_stub(schema) for each distractor. Pure, so the
+    ordering is testable without tau2."""
+    missing = set(env_tools) - {t["function"]["name"] for t in catalog}
+    if missing:
+        raise ValueError(f"catalog is missing native tools {sorted(missing)}")
+    return [env_tools.get(t["function"]["name"]) or make_stub(t) for t in catalog]
+
+
+def register_padded_agent(catalog: list[dict[str, Any]], size: int) -> str:
+    """Register tau2 agent factory 'llm_agent_c<size>' and return its name.
+
+    Only the AGENT's tool list is padded. tau2 builds the agent from
+    environment.get_tools() (runner/build.py) and executes calls against the
+    environment, which never learns about the distractors.
+    """
+    from tau2.agent.llm_agent import LLMAgent
+    from tau2.environment.tool import BaseTool
+    from tau2.registry import registry
+
+    class DistractorTool(BaseTool):
+        tool_schema: dict
+
+        @property
+        def openai_schema(self) -> dict:
+            return self.tool_schema
+
+        def _call(self, *args, **kwargs):  # never reached: the env executes calls
+            raise RuntimeError(f"distractor {self.name} was executed")
+
+    def factory(tools, domain_policy, **kwargs):
+        ordered = order_agent_tools(
+            {t.name: t for t in tools},
+            catalog,
+            lambda t: DistractorTool(name=t["function"]["name"], tool_schema=t),
+        )
+        return LLMAgent(
+            tools=ordered,
+            domain_policy=domain_policy,
+            llm=kwargs.get("llm"),
+            llm_args=kwargs.get("llm_args"),
+        )
+
+    name = f"llm_agent_c{size}"
+    if registry.get_agent_factory(name) is None:
+        registry.register_agent_factory(factory, name)
+    return name
+
+
+def build_run_config(
+    cfg,
+    task_ids: list[str],
+    temperature: float,
+    seed: int,
+    save_to: Path,
+    agent: str = "llm_agent",
+):
     """One tau2 batch: these tasks, this temperature, this seed."""
     from tau2.data_model.simulation import TextRunConfig
 
     return TextRunConfig(
         domain=DOMAIN,
         task_ids=task_ids,
-        agent="llm_agent",
+        agent=agent,
         llm_agent=f"openrouter/{cfg.teacher.model}",
         llm_args_agent={
             "temperature": temperature,
@@ -195,6 +274,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--batch", type=int, default=4, help="tasks per tau2 call")
     parser.add_argument(
+        "--catalog",
+        type=int,
+        default=NATIVE_CATALOG,
+        help="tool catalog the teacher sees (baseline mode; 16 = native)",
+    )
+    parser.add_argument(
         "--dry-run",
         action="store_true",
         help="resolve config, split, quota and resume state without calling the API",
@@ -203,6 +288,9 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = resolve(args)
     print(f"[harvest] {', '.join(check_all(cfg))}")
+    padded = args.catalog != NATIVE_CATALOG
+    if padded and args.mode != "baseline":
+        parser.error("--catalog is for --mode baseline; training data uses the native tools")
 
     limiter = RateLimiter(cfg.teacher.requests_per_minute, cfg.teacher.requests_per_day)
     install(limiter)
@@ -234,10 +322,25 @@ def main(argv: list[str] | None = None) -> int:
     from src.runlog import RunLog
 
     suffix = ".smoke" if cfg.smoke else ""
+    agent_name, catalog_tag, fingerprint = "llm_agent", "", cfg.teacher_fingerprint()
+    if padded:
+        from src.catalogs import load_catalog
+        from src.hashing import hash_obj
+
+        agent_name = register_padded_agent(load_catalog(cfg, args.catalog), args.catalog)
+        catalog_tag = f"-c{args.catalog}"
+        fingerprint = hash_obj(
+            {
+                "teacher": cfg.teacher_fingerprint(),
+                "catalog": args.catalog,
+                "catalog_hash": cfg.eval.catalog_hashes[args.catalog],
+            }
+        )
+        print(f"[harvest] teacher sees catalog {args.catalog} via agent {agent_name}")
     log = RunLog(
-        args.out or cfg.paths.results_dir / f"harvest-{args.mode}{suffix}.jsonl",
-        config_fingerprint=cfg.teacher_fingerprint(),
-        config_name=f"{cfg.teacher.model}:{args.mode}",
+        args.out or cfg.paths.results_dir / f"harvest-{args.mode}{catalog_tag}{suffix}.jsonl",
+        config_fingerprint=fingerprint,
+        config_name=f"{cfg.teacher.model}:{args.mode}{catalog_tag}",
         smoke=cfg.smoke,
     )
     done = log.completed_cells()
@@ -254,8 +357,8 @@ def main(argv: list[str] | None = None) -> int:
     # still pointed at that name — auditable records aimed at the wrong episodes.
     traj_dir = (
         cfg.paths.trajectories_dir
-        / f"{cfg.name}-{args.mode}{suffix}"
-        / short(cfg.teacher_fingerprint())
+        / f"{cfg.name}-{args.mode}{catalog_tag}{suffix}"
+        / short(fingerprint)
     )
     traj_dir.mkdir(parents=True, exist_ok=True)
     session = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
@@ -285,6 +388,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     ran = 0
+    empty_streak = 0
     failed: list[tuple[int, float, str, str]] = []
     try:
         for rep, temp, seed in variants:
@@ -307,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
                     # Fail loudly instead of reaching tau2's resume prompt, which
                     # would hang an unattended run on input() for the whole night.
                     raise FileExistsError(f"{save_to} already exists; refusing to reuse it")
-                run_cfg = build_run_config(cfg, chunk, temp, seed, save_to)
+                run_cfg = build_run_config(cfg, chunk, temp, seed, save_to, agent=agent_name)
 
                 from tau2.registry import registry
                 from tau2.runner.batch import run_tasks
@@ -351,6 +455,17 @@ def main(argv: list[str] | None = None) -> int:
                     f"[harvest] rep{rep} temp={temp} +{logged}{note} | "
                     f"{limiter.used_today} used, {limiter.remaining_today} left"
                 )
+                empty_streak = empty_streak + 1 if logged == 0 else 0
+                if empty_streak >= MAX_CONSECUTIVE_EMPTY_BATCHES:
+                    raise ProviderDown(
+                        f"{empty_streak} batches in a row logged nothing; the provider or the "
+                        "network is down. Check it before rerunning (see _report_failures)."
+                    )
+    except ProviderDown as exc:
+        print(f"\n[harvest] STOPPED EARLY: {exc}")
+        print(f"[harvest] {ran} episodes this session; quota left: {limiter.remaining_today}.")
+        _report_failures(failed)
+        return 1
     except DailyQuotaExhausted as exc:
         print(f"\n[harvest] daily budget spent: {exc}")
         print(f"[harvest] {ran} episodes this session. Rerun tomorrow to continue.")

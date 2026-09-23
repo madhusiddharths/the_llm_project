@@ -19,11 +19,18 @@ scoring rules can never drift between machines.
     # 3. score completions that came back from the GPU run
     python src/eval_forced.py --catalog 16 --backend file --completions results/completions-....jsonl
 
-Which teacher episodes are replayed (D6, open, a metric definition that is
-Madhu's call): --episodes successful (default) replays only reward-1.0 baseline
-episodes, so the reference action is one that led to a solved task. --episodes
-all replays every scored episode, which covers all 60 eval tasks but compares
-students against teacher actions that sometimes led to failure.
+Which teacher episodes are replayed (D6, decided 2026-09-22): only reward-1.0
+baseline episodes, so every reference action is one that led to a solved task.
+Episodes where the user simulator degenerated (a single turn of 368k+ chars;
+trajectories.DEGENERATE_USER_CHARS) are excluded and listed in every record.
+That covers 44 of the 60 eval tasks; report the coverage next to the number.
+--episodes all (every scored episode, all 60 tasks) stays available as a
+sensitivity check, never as the headline.
+
+--tool-format json renders the tools the way Qwen's own template does, instead
+of the compact signatures used in training. It exists for one measurement: how
+much the compact format handicaps a ZERO-SHOT model (review 2026-09-22, the
+Gate 2 caveat). Fine-tuned students are always evaluated on compact.
 """
 
 from __future__ import annotations
@@ -42,10 +49,24 @@ from src.cli import build_parser, resolve
 from src.config import load_config
 from src.hashing import hash_file, hash_obj, short
 from src.invariants import InvariantViolation, check_all
-from src.metrics import score_step, summarize
-from src.prompts import IM_END, parse_completion, render_action, serialize_state, template_hash
+from src.metrics import METRICS_VERSION, score_step, summarize
+from src.prompts import (
+    IM_END,
+    TOOL_FORMATS,
+    parse_completion,
+    render_action,
+    serialize_state,
+    template_hash,
+)
 from src.runlog import RunLog, read_records
-from src.trajectories import Action, Episode, decision_steps, load_episodes
+from src.trajectories import (
+    DEGENERATE_USER_CHARS,
+    Action,
+    Episode,
+    decision_steps,
+    has_degenerate_user_turn,
+    load_episodes,
+)
 
 
 @dataclass(frozen=True)
@@ -59,7 +80,11 @@ class EvalStep:
 
 
 def eval_steps(
-    episodes: Iterable[Episode], *, system: str, tools: list[dict[str, Any]]
+    episodes: Iterable[Episode],
+    *,
+    system: str,
+    tools: list[dict[str, Any]],
+    tool_format: str = "compact",
 ) -> list[EvalStep]:
     steps = []
     for ep in episodes:
@@ -70,7 +95,9 @@ def eval_steps(
                     task_id=ep.task_id,
                     rep=ep.rep,
                     index=st.index,
-                    prompt=serialize_state(system=system, tools=tools, messages=st.context),
+                    prompt=serialize_state(
+                        system=system, tools=tools, messages=st.context, tool_format=tool_format
+                    ),
                     reference=st.action,
                 )
             )
@@ -120,6 +147,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--export", type=Path, help="write prompts JSONL for a GPU run and exit")
     parser.add_argument("--episodes", choices=["successful", "all"], default="successful")
+    parser.add_argument("--tool-format", choices=TOOL_FORMATS, default="compact")
+    parser.add_argument(
+        "--label", help="names the results file for --backend file, e.g. qwen15b-zeroshot"
+    )
     args = parser.parse_args(argv)
 
     cfg = resolve(args)  # smoke-aware: how many tasks and reps
@@ -148,6 +179,15 @@ def main(argv: list[str] | None = None) -> int:
     if stray := sorted({e.task_id for e in episodes} - set(eval_ids)):
         raise InvariantViolation(f"baseline episodes outside the eval split: {stray}")
     episodes = [e for e in episodes if e.rep in wanted_reps]
+    # Degenerate simulator output (trajectories.DEGENERATE_USER_CHARS): the same
+    # episodes are dropped at every catalog size, so the three are comparable.
+    degenerate = sorted(f"{e.task_id}:{e.rep}" for e in episodes if has_degenerate_user_turn(e))
+    episodes = [e for e in episodes if not has_degenerate_user_turn(e)]
+    if degenerate:
+        print(
+            f"[eval_forced] excluded {len(degenerate)} episodes with a simulator turn over "
+            f"{DEGENERATE_USER_CHARS:,} chars: {', '.join(degenerate)}"
+        )
     # The first eval.n_tasks eval tasks that have an episode to replay (all 60
     # in a real run). Counting only tasks with episodes keeps --smoke from
     # landing on two tasks the teacher never solved and scoring nothing.
@@ -157,7 +197,7 @@ def main(argv: list[str] | None = None) -> int:
 
     system = load_system_prompt(cfg)
     tools = load_catalog(cfg, args.catalog)
-    steps = eval_steps(episodes, system=system, tools=tools)
+    steps = eval_steps(episodes, system=system, tools=tools, tool_format=args.tool_format)
     print(
         f"[eval_forced] catalog {args.catalog}: {len(episodes)} {args.episodes} episodes, "
         f"{len(steps)} steps, {len({e.task_id for e in episodes})} tasks"
@@ -187,10 +227,15 @@ def main(argv: list[str] | None = None) -> int:
         "catalog": args.catalog,
         "catalog_hash": cfg.eval.catalog_hashes[args.catalog],
         "prompt_template_hash": template_hash(),
+        "metrics_version": METRICS_VERSION,
         "episodes": args.episodes,
+        "tool_format": args.tool_format,
+        "excluded_degenerate": degenerate,
         "completions": source,
     }
-    label = "teacher" if args.backend == "teacher" else cfg.name
+    label = "teacher" if args.backend == "teacher" else args.label or cfg.name
+    if args.tool_format != "compact":
+        label += f"-{args.tool_format}"
     suffix = ".smoke" if cfg.smoke else ""
     log = RunLog(
         cfg.paths.results_dir / f"forced-{label}-c{args.catalog}{suffix}.jsonl",

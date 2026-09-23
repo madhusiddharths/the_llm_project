@@ -3,8 +3,8 @@
 - **Harvest log:** results/harvest-harvest.jsonl
 - **Teacher:** nvidia/nemotron-3-ultra-550b-a55b:free
 - **Teacher fingerprint:** 4138d3faa22a
-- **Generated:** 2026-09-22 01:21 UTC
-- **Token counts:** estimated at 3.5 chars/token (tokenizer not cached)
+- **Generated:** 2026-09-22 03:08 UTC
+- **Token counts:** Qwen/Qwen2.5-0.5B-Instruct tokenizer
 
 ## Episodes
 
@@ -48,17 +48,17 @@
 
 - 703 results, 8 errors; characters: mean 998.9, p95 2164, max 3370
 
-## Prompt lengths (estimated at 3.5 chars/token (tokenizer not cached))
+## Prompt lengths (Qwen/Qwen2.5-0.5B-Instruct tokenizer)
 
-- System prompt (tau2 instructions + retail policy): 2016 tokens
-- Native tools, compact rendering: 2218 tokens (~139 per tool)
+- System prompt (tau2 instructions + retail policy): 1487 tokens
+- Native tools, compact rendering: 2000 tokens (~125 per tool)
 - `decision_*`: the prompt at one teacher decision (what eval sends).
 - `episode_*`: one whole training sequence (what train.py sees).
 
 | Variant | p50 | p95 | max | > 2048 | > 4096 | > 8192 | > 12288 | > 16384 |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| decision_catalog16 | 5689 | 8567 | 11335 | 100% | 100% | 8% | 0% | 0% |
-| decision_catalog16_no_policy | 3673 | 6551 | 9319 | 100% | 40% | 0% | 0% | 0% |
-| episode_catalog16 | 7922 | 10229 | 11643 | 100% | 100% | 41% | 0% | 0% |
-| decision_catalog40_extrapolated | 9016 | 11894 | 14662 | 100% | 100% | 69% | 3% | 0% |
-| decision_catalog80_extrapolated | 14561 | 17439 | 20207 | 100% | 100% | 100% | 100% | 16% |
+| decision_catalog16 | 5197 | 8969 | 11898 | 100% | 68% | 9% | 0% | 0% |
+| decision_catalog16_no_policy | 3710 | 7482 | 10411 | 100% | 43% | 2% | 0% | 0% |
+| episode_catalog16 | 7911 | 10890 | 12176 | 100% | 100% | 45% | 0% | 0% |
+| decision_catalog40_extrapolated | 8197 | 11969 | 14898 | 100% | 100% | 50% | 3% | 0% |
+| decision_catalog80_extrapolated | 13197 | 16969 | 19898 | 100% | 100% | 100% | 66% | 8% |

@@ -11,8 +11,11 @@ import json
 import pytest
 
 from src.trajectories import (
+    DEGENERATE_USER_CHARS,
     TAU2_GREETING,
+    Episode,
     decision_steps,
+    has_degenerate_user_turn,
     load_episodes,
     parse_action,
 )
@@ -144,3 +147,13 @@ def test_two_scored_simulations_for_one_task_is_an_error(tmp_path):
     _write_log(log, [_row("1", 0, 1.0, batch)])
     with pytest.raises(ValueError, match="two scored"):
         load_episodes(log, fingerprint=FP)
+
+
+def test_a_runaway_simulator_turn_marks_the_episode_degenerate():
+    def ep(user_text):
+        msgs = _messages()
+        msgs[3] = {"role": "user", "content": user_text}
+        return Episode("1", 0, 0.0, 1.0, "f", tuple(msgs))
+
+    assert not has_degenerate_user_turn(ep("a@b.c"))
+    assert has_degenerate_user_turn(ep("I'll proceed. " * (DEGENERATE_USER_CHARS // 10)))

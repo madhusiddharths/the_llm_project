@@ -8,6 +8,11 @@ implement the rules plan §3 fixed, not rules invented here. Those rules:
     strict:     exact match, reported alongside so the choice is visible
 
 Choices §3 does not spell out, made here and open to review:
+  - Tool names are compared EXACTLY in every metric, normalized included. tau2
+    executes names exactly, and one rule for names keeps step agreement from
+    ever exceeding tool-name accuracy (review 2026-09-22).
+  - "Lowercase strings" means string VALUES. Argument names (keys) are compared
+    exactly, for the same reason: tau2 rejects Order_ID where it wants order_id.
   - No type coercion. "1008292230" and 1008292230 do not match; the schema says
     string, and a model that emits the wrong type has made an argument error.
   - List order matters. exchange_delivered_order_items pairs item_ids[i] with
@@ -16,6 +21,13 @@ Choices §3 does not spell out, made here and open to review:
   - Metrics by step kind (D3, decided 2026-09-21): step agreement and tool-name
     accuracy are over TOOL-CALL steps only. Reply steps are scored for decision
     type (reply vs call) and nothing else. Reply text is never scored.
+
+NOT FOR TRAINING SIGNALS. Normalized matching is looser than execution
+('#W2378156' matches '#w2378156', which tau2 would reject). That is acceptable
+for a reported metric with strict beside it, and wrong for anything that
+decides what the model is taught. DPO pair building (plan X5, E2) and the GRPO
+reward (X7, G1) must use execution equivalence against a replayed tau2 DB,
+never calls_equal / normalized_match.
 
 Pure Python: a core module, reused by eval_forced, eval_free and taxonomy.
 """
@@ -29,6 +41,12 @@ from typing import Any
 from src.prompts import Parsed
 from src.trajectories import Action
 
+# Bumped whenever scoring changes what a record says. It is part of every
+# forced-eval cell identity, so re-scoring after a change appends fresh records
+# instead of the resume logic skipping cells scored by the old rules.
+# v2 (2026-09-22): exact tool names; keys not lowercased; tool names recorded.
+METRICS_VERSION = 2
+
 
 def normalize(value: Any) -> Any:
     """§3's normalized form. Recurses through lists and objects."""
@@ -41,7 +59,7 @@ def normalize(value: Any) -> Any:
     if isinstance(value, list | tuple):
         return [normalize(v) for v in value]
     if isinstance(value, Mapping):
-        return {str(k).strip().lower(): normalize(v) for k, v in value.items()}
+        return {k: normalize(v) for k, v in value.items()}  # keys exact; see module doc
     return value
 
 
@@ -54,8 +72,8 @@ def calls_equal(a: Action, b: Action, *, strict: bool) -> bool:
         return False
     if strict:
         return _calls(a) == _calls(b)
-    return [(n.strip().lower(), normalize(args)) for n, args in _calls(a)] == [
-        (n.strip().lower(), normalize(args)) for n, args in _calls(b)
+    return [(n, normalize(args)) for n, args in _calls(a)] == [
+        (n, normalize(args)) for n, args in _calls(b)
     ]
 
 
@@ -68,7 +86,9 @@ class StepScore:
     name_match: bool  # tool-call steps: same tool name(s)
     normalized_match: bool  # tool-call steps: step agreement (§3 normalized)
     strict_match: bool  # tool-call steps: step agreement (strict)
-    hallucinated_tool: bool  # predicted a tool name not in the active catalog
+    hallucinated_tool: bool  # predicted a tool name not in the active catalog (exact match)
+    reference_tools: tuple[str, ...] = ()  # names, for the failure taxonomy
+    predicted_tools: tuple[str, ...] = ()
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -90,6 +110,8 @@ def score_step(reference: Action, parsed: Parsed, catalog_names: Iterable[str]) 
         normalized_match=both_calls and calls_equal(reference, predicted, strict=False),
         strict_match=both_calls and calls_equal(reference, predicted, strict=True),
         hallucinated_tool=kind == "tool_call" and any(c.name not in names for c in predicted.calls),
+        reference_tools=tuple(c.name for c in reference.calls),
+        predicted_tools=tuple(c.name for c in predicted.calls) if predicted else (),
     )
 
 
@@ -114,5 +136,9 @@ def summarize(scores: Iterable[StepScore | Mapping[str, Any]]) -> dict[str, Any]
         "parse_error_rate": round(sum(r["parse_error"] is not None for r in rows) / len(rows), 4)
         if rows
         else None,
-        "hallucinated_tool_rate": rate(rows, "hallucinated_tool"),
+        # Per predicted tool call, not per step: of the turns where the model
+        # called a tool, how often was the name not in the catalog.
+        "hallucinated_tool_rate": rate(
+            [r for r in rows if r["predicted_kind"] == "tool_call"], "hallucinated_tool"
+        ),
     }
