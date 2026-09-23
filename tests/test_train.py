@@ -141,3 +141,36 @@ def test_one_step_trains_saves_and_resumes(tokenizer, tmp_path):
     assert any("resumed from checkpoint-epoch-0" in m for m in resumed)
     assert result2["global_step"] == 1
     assert not any("step 2" in m for m in resumed)
+
+
+def test_smoke_accepts_a_manifest_stamped_with_the_real_harvest_fingerprint(tmp_path):
+    """SMOKE_OVERRIDES move teacher_fingerprint(), but build_sft.py stamps every
+    manifest with the NON-smoke identity. Comparing the smoke config's own
+    fingerprint rejected every manifest that exists; --smoke was unusable."""
+    import hashlib
+    import json
+
+    from src.config import load_config
+    from src.train import load_sft
+
+    real = load_config("configs/qwen05b.yaml")
+    smoke = load_config("configs/qwen05b.yaml", smoke=True)
+    assert real.teacher_fingerprint() != smoke.teacher_fingerprint(), "premise of this test"
+
+    data = tmp_path / "train.smoke.jsonl"
+    data.write_text('{"task_id": "0", "rep": 0, "segments": []}\n')
+    (tmp_path / "manifest.smoke.json").write_text(
+        json.dumps(
+            {
+                "file": data.name,
+                "file_sha256": hashlib.sha256(data.read_bytes()).hexdigest(),
+                "teacher_fingerprint": real.teacher_fingerprint(),
+                "prompt_template_hash": smoke.prompt_template_hash,
+                "system_prompt_hash": smoke.system_prompt_hash,
+                "catalog_hash": smoke.eval.catalog_hashes[16],
+            }
+        )
+    )
+
+    records, _ = load_sft(tmp_path, smoke, harvest_fingerprint=real.teacher_fingerprint())
+    assert len(records) == 1

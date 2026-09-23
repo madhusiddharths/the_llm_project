@@ -1,0 +1,21 @@
+{
+  "source": "results/forced-qwen15b-zeroshot-c16.jsonl",
+  "n_steps": 1416,
+  "n_wrong": 847,
+  "counts": {
+    "hallucinated_tool": 2,
+    "wrong_tool_neighbor": 34,
+    "wrong_tool_unrelated": 19,
+    "right_tool_wrong_args": 21,
+    "premature_termination": 658,
+    "malformed_output": 0,
+    "call_instead_of_reply": 113
+  },
+  "share_of_wrong_tool_call_steps": {
+    "hallucinated_tool": 0.0027,
+    "wrong_tool_neighbor": 0.0463,
+    "wrong_tool_unrelated": 0.0259,
+    "right_tool_wrong_args": 0.0286,
+    "premature_termination": 0.8965
+  }
+}

@@ -64,8 +64,20 @@ IGNORE = -100
 # --- data --------------------------------------------------------------------
 
 
-def load_sft(data_dir: Path, cfg: ExperimentConfig) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-    """train.jsonl + manifest.json, refused unless they match this config."""
+def load_sft(
+    data_dir: Path, cfg: ExperimentConfig, *, harvest_fingerprint: str | None = None
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """train.jsonl + manifest.json, refused unless they match this config.
+
+    `harvest_fingerprint` names the harvest the data came from, and must be the
+    NON-smoke one. SMOKE_OVERRIDES shortens the simulator, which moves
+    teacher_fingerprint(), but build_sft.py deliberately stamps every manifest —
+    smoke or not — with the non-smoke identity, because that is which harvest
+    the episodes were read from. Comparing a smoke config's own fingerprint
+    against that would reject every manifest that exists, which is what made
+    `--smoke` unusable until 2026-09-23. Defaults to the config's own, so the
+    real path is unchanged.
+    """
     suffix = ".smoke" if cfg.smoke else ""
     manifest_path = data_dir / f"manifest{suffix}.json"
     if not manifest_path.exists() and cfg.smoke:
@@ -77,7 +89,7 @@ def load_sft(data_dir: Path, cfg: ExperimentConfig) -> tuple[list[dict[str, Any]
         "prompt_template_hash": cfg.prompt_template_hash,
         "system_prompt_hash": cfg.system_prompt_hash,
         "catalog_hash": cfg.eval.catalog_hashes.get(16),
-        "teacher_fingerprint": cfg.teacher_fingerprint(),
+        "teacher_fingerprint": harvest_fingerprint or cfg.teacher_fingerprint(),
     }
     for key, want in expected.items():
         if manifest.get(key) != want:
@@ -420,7 +432,12 @@ def main(argv: list[str] | None = None) -> int:
     import transformers
     from transformers import AutoTokenizer
 
-    records, manifest = load_sft(args.data, cfg)
+    # The harvest identity is never the smoke one: see load_sft.
+    from src.config import load_config
+
+    records, manifest = load_sft(
+        args.data, cfg, harvest_fingerprint=load_config(args.config).teacher_fingerprint()
+    )
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.base_model)
     examples = encode_all(tokenizer, records, cfg.train.max_seq_len)
     if cfg.smoke:

@@ -1,0 +1,21 @@
+{
+  "source": "results/forced-qwen15b-sft-c16.jsonl",
+  "n_steps": 1416,
+  "n_wrong": 478,
+  "counts": {
+    "hallucinated_tool": 0,
+    "wrong_tool_neighbor": 105,
+    "wrong_tool_unrelated": 14,
+    "right_tool_wrong_args": 32,
+    "premature_termination": 91,
+    "malformed_output": 0,
+    "call_instead_of_reply": 236
+  },
+  "share_of_wrong_tool_call_steps": {
+    "hallucinated_tool": 0.0,
+    "wrong_tool_neighbor": 0.4339,
+    "wrong_tool_unrelated": 0.0579,
+    "right_tool_wrong_args": 0.1322,
+    "premature_termination": 0.376
+  }
+}

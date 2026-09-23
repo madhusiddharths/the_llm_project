@@ -1,0 +1,18 @@
+{
+  "base_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "adapter": null,
+  "backend": "vllm",
+  "versions": {
+    "vllm": "0.30.0"
+  },
+  "sampling": {
+    "temperature": 0.0,
+    "max_tokens": 1024,
+    "seed": 1234
+  },
+  "max_model_len": 32768,
+  "prompts_file": "prompts-c16.jsonl",
+  "prompts_sha256": "e1e34114e215cc95b60ffd2693cfe0ee7539ab06575d8e9ee152393c6059fbf8",
+  "config_fingerprint": "2986acce54e36494547a6af74d6c96ecee9571e29102a511bd85230df6476822",
+  "seconds": 1973.9
+}
