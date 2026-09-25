@@ -35,3 +35,12 @@ rather than a new idea.
   turns a stated limitation into a measured one. Costs ~100 of the 1,000.
 - 2026-09-09 — Request NVIDIA's additional 4,000 credits with an .edu address.
   Free, minutes of work, and worth doing purely as reserve capacity.
+- 2026-09-25 — Distractor-augmented SFT (V1-07 option C, v2 ablation). Retrain on
+  the same 1,099 teacher decisions with random BFCL decoys in the tool list,
+  drawn only from tools outside catalog-40/80. Answers stay the teacher's.
+  Question: does decoy practice flatten the c16→c80 cliff on unseen decoys?
+  Compare against the v1 adapters. Never use the eval catalogs (plan §5).
+- 2026-09-25 — Public function-calling mix (V1-07 option B, the plan's original
+  8–15k BFCL/Glaive/ToolACE augmentation), with every eval-catalog tool name
+  filtered out. Question: does general tool-calling practice transfer to retail?
+  Watch the ~10:1 dilution of teacher data. Cost ~5–10 GPU h at 1.5B (estimate).

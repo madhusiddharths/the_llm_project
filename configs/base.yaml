@@ -194,3 +194,6 @@ eval:
 escalation:
   enabled: false
   thresholds: [0.5, 0.7, 0.85, 0.95]   # Stage D sweep (§5)
+  # DECIDED 2026-09-25: the threshold applies to step confidence =
+  # min(p(call-vs-reply decision), tool-name confidence), not the plan's
+  # name-only signal, so replies can be escalated too. src/logprobs.py.

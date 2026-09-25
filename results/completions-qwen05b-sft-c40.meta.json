@@ -1,0 +1,18 @@
+{
+  "base_model": "Qwen/Qwen2.5-0.5B-Instruct",
+  "adapter": "madhusiddharths1/tool-router-qwen05b-sft",
+  "backend": "vllm",
+  "versions": {
+    "vllm": "0.30.0"
+  },
+  "sampling": {
+    "temperature": 0.0,
+    "max_tokens": 1024,
+    "seed": 1234
+  },
+  "max_model_len": 32768,
+  "prompts_file": "prompts-c40.jsonl",
+  "prompts_sha256": "88cfc93f2a68de4a08d3abdd00f48229b41683985c57db559f9814e413be25da",
+  "config_fingerprint": "9529110e2bb4ef268150291aeb6ad171c6d561a408cc2ec33851657d8f283cf9",
+  "seconds": 1570.5
+}

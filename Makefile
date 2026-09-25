@@ -10,7 +10,7 @@ PY := .venv/bin/python
 SCRIPTS := eval_forced router_node taxonomy
 CONFIG ?= configs/qwen05b.yaml
 
-.PHONY: help setup check lint test smoke preflight prompt-hash phoenix tracking harvest harvest-plan clean
+.PHONY: help setup check lint test smoke preflight prompt-hash phoenix tracking harvest harvest-plan pull clean
 
 help:
 	@echo "setup        create .venv and install local deps"
@@ -21,6 +21,7 @@ help:
 	@echo "tracking     verify W&B and Phoenix are both live"
 	@echo "harvest-plan show what the harvest would do; makes no API calls"
 	@echo "harvest      run the teacher harvest until the daily quota is spent"
+	@echo "pull         fetch Kaggle completions from the Hub into results/"
 	@echo "prompt-hash  print the live serializer hash for configs/base.yaml"
 
 setup:
@@ -57,6 +58,9 @@ harvest-plan:
 
 harvest:
 	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/harvest.py --config $(CONFIG)
+
+pull:
+	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/pull_results.py $(ARGS)
 
 prompt-hash:
 	@$(PY) -c "from src.prompts import template_hash; print(template_hash())"

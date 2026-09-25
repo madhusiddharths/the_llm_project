@@ -14,9 +14,12 @@ Backends:
                   if vLLM breaks (plan §10), slow but dependency-light.
 
 Greedy decoding (temperature 0) and the teacher's max_tokens, so a completion
-is a function of (model, adapter, prompt). Resumable: step_ids already in --out
-are skipped, and results are appended after every chunk, because Kaggle
-sessions die.
+is a function of (model, adapter, prompt). --logprobs also records each
+generated token id and its log-prob (raw, before any sampling processor), plus
+the top FIRST_TOP_K candidates at the first position, which src/logprobs.py
+turns into step confidence on the Mac (V1-18).
+Resumable: step_ids already in --out are skipped, and results are appended
+after every chunk, because Kaggle sessions die.
 
     # zero-shot 1.5B at catalog 16 (on Kaggle)
     python src/generate.py --config configs/qwen15b.yaml \\
@@ -43,6 +46,9 @@ from src.prompts import IM_END
 from src.runlog import read_records
 
 CHUNK = 128  # prompts per vLLM call between appends
+# Candidates kept at the first position, where p(<tool_call>) is read
+# (logprobs.py, choice 5). 20 is vLLM's default ceiling (max_logprobs).
+FIRST_TOP_K = 20
 DEFAULT_MAX_MODEL_LEN = 32768  # Qwen2.5 context; catalog 80 prompts reach ~20k tokens
 
 
@@ -73,7 +79,25 @@ def _resolve_adapter(adapter: str | None) -> str | None:
     return snapshot_download(adapter, allow_patterns=["adapter_*", "*.json"])
 
 
-def run_vllm(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int) -> dict[str, Any]:
+def sampled_logprobs(token_ids, per_step) -> list[float]:
+    """vLLM returns, per generated token, the top-k alternatives keyed by token
+    id. The one we want is the token that was actually emitted, looked up by
+    its id, never "the first entry": under greedy it is also the top-1, but the
+    lookup does not rely on that."""
+    if per_step is None or len(per_step) != len(token_ids):
+        raise ValueError("vLLM returned no per-token log-probs; was logprobs set?")
+    return [float(step[tid].logprob) for tid, step in zip(token_ids, per_step, strict=True)]
+
+
+def first_top(step) -> list[list[float]]:
+    """The first position's candidates as [[token_id, logprob], ...], best first."""
+    pairs = sorted(((int(t), float(lp.logprob)) for t, lp in step.items()), key=lambda x: -x[1])
+    return [[t, lp] for t, lp in pairs]
+
+
+def run_vllm(
+    cfg, rows, out_path: Path, adapter: str | None, max_model_len: int, logprobs: bool = False
+) -> dict[str, Any]:
     import vllm
     from vllm import LLM, SamplingParams
 
@@ -85,9 +109,16 @@ def run_vllm(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int)
         seed=cfg.seed,
         enable_lora=adapter is not None,
         max_lora_rank=cfg.train.lora_r,
+        # The model's own log-probs, not ones after temperature or penalties.
+        # vLLM's default, set explicitly so an upgrade cannot change it.
+        **({"logprobs_mode": "raw_logprobs"} if logprobs else {}),
     )
     params = SamplingParams(
-        temperature=0.0, max_tokens=cfg.teacher.max_tokens, stop=[IM_END], seed=cfg.seed
+        temperature=0.0,
+        max_tokens=cfg.teacher.max_tokens,
+        stop=[IM_END],
+        seed=cfg.seed,
+        logprobs=FIRST_TOP_K if logprobs else None,
     )
     lora = None
     if adapter is not None:
@@ -95,27 +126,32 @@ def run_vllm(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int)
 
         lora = LoRARequest("student", 1, adapter)
 
+    def record(r, o) -> dict[str, Any]:
+        out = o.outputs[0]
+        rec = {
+            "step_id": r["step_id"],
+            "completion": out.text,
+            "prompt_tokens": len(o.prompt_token_ids),
+            "completion_tokens": len(out.token_ids),
+            "finish_reason": out.finish_reason,
+        }
+        if logprobs:
+            rec["token_ids"] = list(out.token_ids)
+            rec["token_logprobs"] = sampled_logprobs(out.token_ids, out.logprobs)
+            rec["first_top"] = first_top(out.logprobs[0]) if out.logprobs else []
+        return rec
+
     for start in range(0, len(rows), CHUNK):
         chunk = rows[start : start + CHUNK]
         outs = llm.generate([r["prompt"] for r in chunk], params, lora_request=lora)
-        append(
-            out_path,
-            (
-                {
-                    "step_id": r["step_id"],
-                    "completion": o.outputs[0].text,
-                    "prompt_tokens": len(o.prompt_token_ids),
-                    "completion_tokens": len(o.outputs[0].token_ids),
-                    "finish_reason": o.outputs[0].finish_reason,
-                }
-                for r, o in zip(chunk, outs, strict=True)
-            ),
-        )
+        append(out_path, (record(r, o) for r, o in zip(chunk, outs, strict=True)))
         print(f"[generate] {start + len(chunk)}/{len(rows)}")
     return {"vllm": vllm.__version__}
 
 
-def run_hf(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int) -> dict[str, Any]:
+def run_hf(
+    cfg, rows, out_path: Path, adapter: str | None, max_model_len: int, logprobs: bool = False
+) -> dict[str, Any]:
     import torch
     import transformers
     from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -143,22 +179,32 @@ def run_hf(cfg, rows, out_path: Path, adapter: str | None, max_model_len: int) -
                 ids.to("cuda"),
                 do_sample=False,
                 max_new_tokens=cfg.teacher.max_tokens,
+                # Qwen's generation_config.json sets a repetition penalty, which
+                # generate() merges in even when greedy. vLLM never applies it
+                # (explicit SamplingParams), so turn it off to keep the two equal.
+                repetition_penalty=1.0,
                 eos_token_id=stop,
                 pad_token_id=tok.pad_token_id or stop,
+                return_dict_in_generate=True,
+                output_logits=logprobs,  # raw logits, to match vLLM's raw log-probs
             )
-        new = out[0, ids.shape[1] :]
-        append(
-            out_path,
-            [
-                {
-                    "step_id": r["step_id"],
-                    "completion": tok.decode(new, skip_special_tokens=False),
-                    "prompt_tokens": int(ids.shape[1]),
-                    "completion_tokens": int(new.shape[0]),
-                    "finish_reason": "stop" if int(new[-1]) == stop else "length",
-                }
-            ],
-        )
+        new = out.sequences[0, ids.shape[1] :]
+        rec = {
+            "step_id": r["step_id"],
+            "completion": tok.decode(new, skip_special_tokens=False),
+            "prompt_tokens": int(ids.shape[1]),
+            "completion_tokens": int(new.shape[0]),
+            "finish_reason": "stop" if int(new[-1]) == stop else "length",
+        }
+        if logprobs:
+            rec["token_ids"] = [int(t) for t in new]
+            steps = [torch.log_softmax(step[0].float(), dim=-1) for step in out.logits]
+            rec["token_logprobs"] = [float(lp[t]) for lp, t in zip(steps, new, strict=True)]
+            top = steps[0].topk(FIRST_TOP_K)
+            rec["first_top"] = [
+                [int(t), float(v)] for v, t in zip(top.values, top.indices, strict=True)
+            ]
+        append(out_path, [rec])
         if (i + 1) % 25 == 0:
             print(f"[generate] {i + 1}/{len(rows)}")
     return {"transformers": transformers.__version__}
@@ -171,6 +217,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--backend", choices=["vllm", "hf"], default="vllm")
     parser.add_argument("--max-model-len", type=int, default=DEFAULT_MAX_MODEL_LEN)
     parser.add_argument("--limit", type=int, help="first N prompts only (use with --smoke)")
+    parser.add_argument(
+        "--logprobs", action="store_true", help="record token ids and log-probs (V1-18)"
+    )
     args = parser.parse_args(argv)
     if args.out is None:
         parser.error("--out is required")
@@ -186,7 +235,7 @@ def main(argv: list[str] | None = None) -> int:
     versions: dict[str, Any] = {}
     if rows:
         runner = run_vllm if args.backend == "vllm" else run_hf
-        versions = runner(cfg, rows, args.out, adapter, args.max_model_len)
+        versions = runner(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
 
     meta = {
         "base_model": cfg.model.base_model,
@@ -195,6 +244,7 @@ def main(argv: list[str] | None = None) -> int:
         "versions": versions,
         "sampling": {"temperature": 0.0, "max_tokens": cfg.teacher.max_tokens, "seed": cfg.seed},
         "max_model_len": args.max_model_len,
+        "logprobs": args.logprobs,
         "prompts_file": args.prompts.name,
         "prompts_sha256": hash_file(args.prompts),
         "config_fingerprint": cfg.fingerprint(),

@@ -257,7 +257,11 @@ class HFPolicy:
         ids = self.tok(prompt, return_tensors="pt", add_special_tokens=False).input_ids.to("cuda")
         with torch.no_grad():
             out = self.model.generate(
-                ids, do_sample=False, max_new_tokens=self.max_new, eos_token_id=self.stop
+                ids,
+                do_sample=False,
+                max_new_tokens=self.max_new,
+                repetition_penalty=1.0,  # as in generate.run_hf: match vLLM
+                eos_token_id=self.stop,
             )
         return self.tok.decode(out[0, ids.shape[1] :], skip_special_tokens=False)
 

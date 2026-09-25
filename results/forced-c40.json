@@ -1,0 +1,101 @@
+{
+  "catalog": 40,
+  "smoke": false,
+  "labels": {
+    "qwen05b-sft": {
+      "n_episodes": 142,
+      "n_steps": 1416,
+      "n_tool_call_steps": 905,
+      "n_reply_steps": 511,
+      "step_agreement": 0.2862,
+      "step_agreement_strict": 0.2862,
+      "tool_name_accuracy": 0.3249,
+      "decision_type_accuracy": 0.7528,
+      "reply_step_decision_accuracy": 0.5245,
+      "parse_error_rate": 0.0141,
+      "hallucinated_tool_rate": 0.002,
+      "step_agreement_by_episode": {
+        "mean": 0.2641,
+        "ci95_low": 0.2335,
+        "ci95_high": 0.2948,
+        "n": 142
+      }
+    },
+    "qwen05b-zeroshot": {
+      "n_episodes": 142,
+      "n_steps": 1416,
+      "n_tool_call_steps": 905,
+      "n_reply_steps": 511,
+      "step_agreement": 0.1116,
+      "step_agreement_strict": 0.1116,
+      "tool_name_accuracy": 0.1425,
+      "decision_type_accuracy": 0.3701,
+      "reply_step_decision_accuracy": 0.3738,
+      "parse_error_rate": 0.0219,
+      "hallucinated_tool_rate": 0.0142,
+      "step_agreement_by_episode": {
+        "mean": 0.1008,
+        "ci95_low": 0.081,
+        "ci95_high": 0.1206,
+        "n": 142
+      }
+    },
+    "qwen15b-sft": {
+      "n_episodes": 142,
+      "n_steps": 1416,
+      "n_tool_call_steps": 905,
+      "n_reply_steps": 511,
+      "step_agreement": 0.5436,
+      "step_agreement_strict": 0.5436,
+      "tool_name_accuracy": 0.5702,
+      "decision_type_accuracy": 0.7719,
+      "reply_step_decision_accuracy": 0.593,
+      "parse_error_rate": 0.0,
+      "hallucinated_tool_rate": 0.001,
+      "step_agreement_by_episode": {
+        "mean": 0.5323,
+        "ci95_low": 0.4953,
+        "ci95_high": 0.5693,
+        "n": 142
+      }
+    },
+    "qwen15b-zeroshot": {
+      "n_episodes": 142,
+      "n_steps": 1416,
+      "n_tool_call_steps": 905,
+      "n_reply_steps": 511,
+      "step_agreement": 0.0829,
+      "step_agreement_strict": 0.0829,
+      "tool_name_accuracy": 0.0972,
+      "decision_type_accuracy": 0.4167,
+      "reply_step_decision_accuracy": 0.8787,
+      "parse_error_rate": 0.0,
+      "hallucinated_tool_rate": 0.0,
+      "step_agreement_by_episode": {
+        "mean": 0.0771,
+        "ci95_low": 0.0591,
+        "ci95_high": 0.0951,
+        "n": 142
+      }
+    },
+    "teacher": {
+      "n_episodes": 142,
+      "n_steps": 1416,
+      "n_tool_call_steps": 905,
+      "n_reply_steps": 511,
+      "step_agreement": 1.0,
+      "step_agreement_strict": 1.0,
+      "tool_name_accuracy": 1.0,
+      "decision_type_accuracy": 1.0,
+      "reply_step_decision_accuracy": 1.0,
+      "parse_error_rate": 0.0,
+      "hallucinated_tool_rate": 0.0,
+      "step_agreement_by_episode": {
+        "mean": 1.0,
+        "ci95_low": 1.0,
+        "ci95_high": 1.0,
+        "n": 142
+      }
+    }
+  }
+}
