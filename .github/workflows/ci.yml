@@ -27,12 +27,17 @@ jobs:
           ruff check src tests
           ruff format --check src tests
 
+      - name: Type check
+        run: pyright
+
       - name: Tests
         run: pytest
 
+      # The smoke paths that need nothing outside the repo. harvest, train,
+      # generate and eval_free smoke where their real job runs (the API,
+      # Kaggle): they need litellm or a GPU, which this job does not install.
+      # eval_forced's smoke replays the teacher trajectories, which are
+      # gitignored (108 MB), so it runs locally in `make smoke`; its logic is
+      # covered by tests/test_eval_forced.py here.
       - name: Smoke paths
-        run: |
-          for s in harvest train eval_forced eval_free router_node taxonomy; do
-            echo "--- $s ---"
-            python src/$s.py --smoke || exit 1
-          done
+        run: make smoke PY=python SCRIPTS="router_node taxonomy"

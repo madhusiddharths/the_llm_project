@@ -115,7 +115,7 @@ def forced_rows(results_path: Path, fingerprint: str | None = None) -> list[dict
     if not records:
         return []
     if fingerprint is None:
-        fingerprint = records[-1]["config_fingerprint"]
+        fingerprint = str(records[-1]["config_fingerprint"])
         others = sorted({r["config_fingerprint"][:12] for r in records} - {fingerprint[:12]})
         if others:
             print(f"[taxonomy] using latest identity {fingerprint[:12]}; also in file: {others}")

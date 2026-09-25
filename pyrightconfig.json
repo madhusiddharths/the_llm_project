@@ -1,0 +1,15 @@
+{
+  "include": ["src"],
+  "exclude": [
+    "src/harvest.py",
+    "src/eval_free.py",
+    "src/generate.py",
+    "src/train.py",
+    "src/check_tracking.py",
+    "**/__pycache__"
+  ],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.12",
+  "reportMissingImports": "none",
+  "reportMissingModuleSource": "none"
+}

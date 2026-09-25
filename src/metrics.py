@@ -97,9 +97,21 @@ class StepScore:
 def score_step(reference: Action, parsed: Parsed, catalog_names: Iterable[str]) -> StepScore:
     predicted = parsed.action
     names = set(catalog_names)
-    kind = predicted.kind if predicted else None
-    is_call = reference.kind == "tool_call"
-    both_calls = is_call and kind == "tool_call"
+    reference_tools = tuple(c.name for c in reference.calls)
+    if predicted is None:  # did not parse: agrees with nothing
+        return StepScore(
+            reference_kind=reference.kind,
+            predicted_kind=None,
+            parse_error=parsed.error,
+            kind_match=False,
+            name_match=False,
+            normalized_match=False,
+            strict_match=False,
+            hallucinated_tool=False,
+            reference_tools=reference_tools,
+        )
+    kind = predicted.kind
+    both_calls = reference.kind == "tool_call" and kind == "tool_call"
     return StepScore(
         reference_kind=reference.kind,
         predicted_kind=kind,
@@ -110,8 +122,8 @@ def score_step(reference: Action, parsed: Parsed, catalog_names: Iterable[str]) 
         normalized_match=both_calls and calls_equal(reference, predicted, strict=False),
         strict_match=both_calls and calls_equal(reference, predicted, strict=True),
         hallucinated_tool=kind == "tool_call" and any(c.name not in names for c in predicted.calls),
-        reference_tools=tuple(c.name for c in reference.calls),
-        predicted_tools=tuple(c.name for c in predicted.calls) if predicted else (),
+        reference_tools=reference_tools,
+        predicted_tools=tuple(c.name for c in predicted.calls),
     )
 
 

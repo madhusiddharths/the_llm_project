@@ -269,7 +269,7 @@ def local_token_counter(base_model: str) -> Callable[[str], int] | None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser = argparse.ArgumentParser(description=(__doc__ or "").splitlines()[0])
     parser.add_argument("--config", default=DEFAULT_CONFIG)
     parser.add_argument(
         "--log",

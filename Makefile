@@ -10,7 +10,7 @@ PY := .venv/bin/python
 SCRIPTS := eval_forced router_node taxonomy
 CONFIG ?= configs/qwen05b.yaml
 
-.PHONY: help setup check lint test smoke preflight prompt-hash phoenix tracking harvest harvest-plan pull clean
+.PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan pull clean
 
 help:
 	@echo "setup        create .venv and install local deps"
@@ -28,11 +28,17 @@ setup:
 	uv venv .venv --python 3.12
 	uv pip install -r requirements.txt
 
-check: lint test
+check: lint typecheck test
 
 lint:
 	$(PY) -m ruff check src tests
 	$(PY) -m ruff format --check src tests
+
+# Basic-mode pyright over the pure-Python core. pyrightconfig.json excludes the
+# modules that are mostly calls into tau2, vLLM, torch and wandb, whose type
+# information is incomplete enough to bury real findings in false ones.
+typecheck:
+	$(PY) -m pyright
 
 test:
 	$(PY) -m pytest

@@ -53,6 +53,7 @@ from src.metrics import METRICS_VERSION, score_step, summarize
 from src.prompts import (
     IM_END,
     TOOL_FORMATS,
+    ToolFormat,
     parse_completion,
     render_action,
     serialize_state,
@@ -84,7 +85,7 @@ def eval_steps(
     *,
     system: str,
     tools: list[dict[str, Any]],
-    tool_format: str = "compact",
+    tool_format: ToolFormat = "compact",
 ) -> list[EvalStep]:
     steps = []
     for ep in episodes:
