@@ -65,6 +65,9 @@ and failed episodes stay unlogged so the next run retries them.
         --adapter <hf-user>/tool-router-qwen15b-sft
     # smoke: 2 tasks, 1 seed, 2 simulator turns (a few API requests)
     python src/eval_free.py --config configs/qwen05b.yaml --catalog 16 --smoke
+    # several episodes at once: the student behind a local vLLM server
+    python src/eval_free.py --config configs/qwen15b.yaml --catalog 80 \\
+        --adapter <hf-user>/tool-router-qwen15b-sft --backend server --concurrency 6
     # plumbing check with no GPU: every student turn is the same fixed reply
     python src/eval_free.py --config configs/qwen05b.yaml --backend fixed --smoke
 """
@@ -224,6 +227,143 @@ class VLLMPolicy:
         return out[0].outputs[0].text
 
 
+SERVER_PORT = 8765
+SERVED_NAME = "student"  # the name the adapter (or the bare model) is served under
+
+
+def server_command(
+    cfg, adapter_path: str | None, max_model_len: int, port: int = SERVER_PORT
+) -> list[str]:
+    """`vllm serve` with VLLMPolicy's engine settings, so the two differ only in
+    how requests arrive: one at a time in-process, or several at once over HTTP."""
+    cmd = [
+        sys.executable, "-m", "vllm.entrypoints.openai.api_server",
+        "--model", cfg.model.base_model,
+        "--dtype", "half",
+        "--max-model-len", str(max_model_len),
+        "--gpu-memory-utilization", "0.9",
+        "--seed", str(cfg.seed),
+        "--port", str(port),
+    ]  # fmt: skip
+    if adapter_path is None:
+        cmd += ["--served-model-name", SERVED_NAME]
+    else:
+        cmd += [
+            "--enable-lora",
+            "--max-lora-rank", str(cfg.train.lora_r),
+            "--lora-modules", f"{SERVED_NAME}={adapter_path}",
+        ]  # fmt: skip
+    return cmd
+
+
+def results_engine(backend: str) -> str:
+    """The backend as it enters a results file's identity.
+
+    DECIDED 2026-09-28: the server is the same vLLM engine with the same settings
+    as the in-process one, so both count as "vllm" and a cell may mix them. This
+    let 1.5B c16 keep its 167 serial episodes when the rest moved to the server.
+    Each episode still records its own backend and concurrency. hf and fixed are
+    different engines and stay separate.
+    """
+    return "vllm" if backend == "server" else backend
+
+
+def completion_request(cfg, prompt: str) -> dict[str, Any]:
+    """The /v1/completions body: VLLMPolicy's SamplingParams, field for field."""
+    from src.prompts import IM_END
+
+    return {
+        "model": SERVED_NAME,
+        "prompt": prompt,
+        "temperature": 0.0,
+        "max_tokens": cfg.teacher.max_tokens,
+        "stop": [IM_END],
+        "seed": cfg.seed,
+    }
+
+
+def completion_text(body: Mapping[str, Any]) -> str:
+    choices = body.get("choices") or []
+    if len(choices) != 1:
+        raise ValueError(f"expected one completion, got {len(choices)}: {body}")
+    return str(choices[0].get("text") or "")
+
+
+class ServerPolicy:
+    """The student behind a local vLLM OpenAI-compatible server, so tau2 can run
+    several episodes at once (--concurrency) and vLLM batches their turns.
+
+    Same model, adapter, dtype, context, greedy decoding, stop and max_tokens as
+    VLLMPolicy. Not guaranteed token-identical to it: batched fp16 kernels can
+    round differently. That is accepted within a cell (results_engine): the
+    API user simulator already varies episode to episode by more than that.
+
+    Requests go through urllib, NOT litellm: the throttle counts every litellm
+    call against the daily OpenRouter quota, and the student is local.
+    """
+
+    name = "server"
+
+    def __init__(self, cfg, adapter: str | None, max_model_len: int, port: int = SERVER_PORT):
+        import atexit
+        import subprocess
+
+        from transformers import AutoTokenizer
+
+        from src.generate import _resolve_adapter
+
+        self.cfg = cfg
+        self.url = f"http://127.0.0.1:{port}"
+        self.limit = max_model_len - cfg.teacher.max_tokens
+        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model.base_model)
+        cmd = server_command(cfg, _resolve_adapter(adapter), max_model_len, port)
+        print(f"[eval_free] starting vLLM server: {' '.join(cmd)}")
+        self.proc = subprocess.Popen(cmd)
+        atexit.register(self.close)
+        self._wait_ready()
+
+    def _wait_ready(self, timeout_s: float = 900.0) -> None:
+        import urllib.request
+
+        deadline = time.time() + timeout_s
+        while time.time() < deadline:
+            if self.proc.poll() is not None:
+                raise RuntimeError(f"vLLM server exited with code {self.proc.returncode}")
+            try:
+                with urllib.request.urlopen(f"{self.url}/health", timeout=5) as r:
+                    if r.status == 200:
+                        print("[eval_free] vLLM server ready")
+                        return
+            except OSError:
+                pass
+            time.sleep(5)
+        self.close()
+        raise TimeoutError(f"vLLM server not ready after {timeout_s:.0f}s")
+
+    def close(self) -> None:
+        if self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=30)
+            except Exception:
+                self.proc.kill()
+
+    def fits(self, prompt: str) -> bool:
+        return len(self.tokenizer(prompt, add_special_tokens=False)["input_ids"]) <= self.limit
+
+    def __call__(self, prompt: str) -> str:
+        import json
+        import urllib.request
+
+        req = urllib.request.Request(
+            f"{self.url}/v1/completions",
+            data=json.dumps(completion_request(self.cfg, prompt)).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=600) as r:
+            return completion_text(json.loads(r.read()))
+
+
 class HFPolicy:
     """transformers generate(): the fallback if vLLM breaks (plan §10)."""
 
@@ -372,7 +512,9 @@ def register_student_agent(
     return name
 
 
-def build_student_run_config(cfg, agent: str, task_ids, seed: int, save_to: Path):
+def build_student_run_config(
+    cfg, agent: str, task_ids, seed: int, save_to: Path, concurrency: int = 1
+):
     """harvest.build_run_config's user, judge and limits; the agent is the student."""
     from tau2.data_model.simulation import TextRunConfig
 
@@ -393,7 +535,7 @@ def build_student_run_config(cfg, agent: str, task_ids, seed: int, save_to: Path
         num_trials=1,
         seed=seed,
         max_steps=cfg.simulator.max_turns * 2,
-        max_concurrency=1,
+        max_concurrency=concurrency,
         max_retries=2,
         retry_delay=5.0,
         log_level="ERROR",
@@ -422,9 +564,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--adapter", help="LoRA adapter: Hub repo id or local dir (omit: zero-shot)"
     )
-    parser.add_argument("--backend", choices=["vllm", "hf", "fixed"], default="vllm")
+    parser.add_argument("--backend", choices=["vllm", "server", "hf", "fixed"], default="vllm")
+    parser.add_argument(
+        "--concurrency",
+        type=int,
+        default=1,
+        help="episodes run at once; >1 needs --backend server (or fixed)",
+    )
     parser.add_argument("--max-model-len", type=int, default=32768)
-    parser.add_argument("--batch", type=int, default=4, help="tasks per tau2 call")
+    parser.add_argument(
+        "--batch", type=int, help="tasks per tau2 call (default: 4, or 2x --concurrency)"
+    )
     parser.add_argument("--label", help="names the results file (default: config + adapter tag)")
     parser.add_argument(
         "--hub-sync",
@@ -434,6 +584,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     cfg = resolve(args)
+    if args.concurrency > 1 and args.backend in ("vllm", "hf"):
+        # One in-process engine is not thread-safe; the server batches for us.
+        parser.error("--concurrency > 1 needs --backend server")
+    # A tau2 call waits for its slowest episode, so give each slot two tasks.
+    args.batch = args.batch or (4 if args.concurrency == 1 else 2 * args.concurrency)
     print(f"[eval_free] {', '.join(check_all(cfg))}")
     if args.catalog not in cfg.eval.catalog_sizes:
         raise InvariantViolation(f"catalog {args.catalog} not in {cfg.eval.catalog_sizes}")
@@ -462,6 +617,13 @@ def main(argv: list[str] | None = None) -> int:
     limiter = RateLimiter(cfg.teacher.requests_per_minute, cfg.teacher.requests_per_day)
     install(limiter)
     install_judge(cfg.judge)
+    # Before loading the student: a spent day would otherwise cost ~1.3 GPU min per cell.
+    if affordable_episodes(limiter, 1) == 0:
+        print(
+            f"[eval_free] daily budget spent: {limiter.remaining_today} left "
+            f"(an episode may need {MAX_REQUESTS_PER_EPISODE}); not loading the student."
+        )
+        return 0
 
     train_ids, eval_ids = split_task_ids(
         load_task_ids(), cfg.split.n_train, cfg.split.n_eval, cfg.split.split_seed
@@ -480,6 +642,8 @@ def main(argv: list[str] | None = None) -> int:
         policy = FixedPolicy()
     elif args.backend == "vllm":
         policy = VLLMPolicy(cfg, args.adapter, args.max_model_len)
+    elif args.backend == "server":
+        policy = ServerPolicy(cfg, args.adapter, args.max_model_len)
     else:
         policy = HFPolicy(cfg, args.adapter, args.max_model_len)
     agent = register_student_agent(args.catalog, catalog, native, system_text, policy)
@@ -495,7 +659,7 @@ def main(argv: list[str] | None = None) -> int:
         "catalog_hash": cfg.eval.catalog_hashes[args.catalog],
         "prompt_template_hash": template_hash(),
         "adapter": args.adapter,
-        "backend": args.backend,
+        "backend": results_engine(args.backend),
     }
     log = RunLog(
         cfg.paths.results_dir / f"free-{tag}-c{args.catalog}{suffix}.jsonl",
@@ -540,7 +704,9 @@ def main(argv: list[str] | None = None) -> int:
                 save_to = batch_path(traj_dir, session, rep, i // args.batch)
                 if save_to.exists():
                     raise FileExistsError(f"{save_to} already exists; refusing to reuse it")
-                run_cfg = build_student_run_config(cfg, agent, chunk, seed, save_to)
+                run_cfg = build_student_run_config(
+                    cfg, agent, chunk, seed, save_to, concurrency=args.concurrency
+                )
                 results = run_tasks(
                     run_cfg, [all_tasks[t] for t in chunk], save_path=save_to, console_display=False
                 )
@@ -564,6 +730,8 @@ def main(argv: list[str] | None = None) -> int:
                             "termination": getattr(sim.termination_reason, "value", None),
                             "n_messages": len(msgs),
                             "trajectory_file": str(save_to),
+                            "backend": args.backend,
+                            "concurrency": args.concurrency,
                             **episode_stats(msgs, catalog_names, native_names),
                         },
                     )

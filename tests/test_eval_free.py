@@ -254,3 +254,109 @@ def test_hub_pull_never_overwrites_a_local_results_file(tmp_path, monkeypatch):
     local.write_text("{}\n")
     hub_pull("someone/repo", local, tmp_path / "traj")  # returns without touching the Hub
     assert local.read_text() == "{}\n"
+
+
+# --- the server backend and --concurrency ----------------------------------------
+
+
+def _cfg():
+    from src.config import load_config
+
+    return load_config("configs/qwen15b.yaml")
+
+
+def test_the_server_is_started_with_the_in_process_engine_settings():
+    from src.eval_free import SERVED_NAME, server_command
+
+    cfg = _cfg()
+    cmd = server_command(cfg, "/adapters/sft", 32768, port=9000)
+    flag = {cmd[i]: cmd[i + 1] for i in range(len(cmd) - 1) if cmd[i].startswith("--")}
+    assert flag["--model"] == cfg.model.base_model
+    assert flag["--dtype"] == "half" and flag["--max-model-len"] == "32768"
+    assert flag["--gpu-memory-utilization"] == "0.9" and flag["--seed"] == str(cfg.seed)
+    assert flag["--lora-modules"] == f"{SERVED_NAME}=/adapters/sft"
+    assert flag["--max-lora-rank"] == str(cfg.train.lora_r) and "--enable-lora" in cmd
+    # zero-shot: the bare model answers to the same name, no LoRA flags
+    bare = server_command(cfg, None, 32768)
+    assert "--enable-lora" not in bare and SERVED_NAME in bare
+
+
+def test_a_server_request_is_greedy_with_the_teachers_budget_and_stop():
+    from src.eval_free import completion_request, completion_text
+
+    cfg = _cfg()
+    body = completion_request(cfg, "PROMPT")
+    assert body["prompt"] == "PROMPT" and body["temperature"] == 0.0
+    assert body["max_tokens"] == cfg.teacher.max_tokens and body["stop"] == ["<|im_end|>"]
+    assert body["seed"] == cfg.seed
+    assert completion_text({"choices": [{"text": "hi"}]}) == "hi"
+    with pytest.raises(ValueError):
+        completion_text({"choices": []})
+
+
+def test_the_server_and_in_process_vllm_share_a_results_identity():
+    """1.5B c16's serial episodes must count toward the same cell on the server."""
+    from src.eval_free import results_engine
+
+    assert results_engine("server") == results_engine("vllm") == "vllm"
+    assert results_engine("hf") == "hf" and results_engine("fixed") == "fixed"
+
+
+@pytest.mark.parametrize("backend", ["vllm", "hf"])
+def test_concurrency_is_refused_for_an_in_process_engine(backend):
+    from src.eval_free import main
+
+    with pytest.raises(SystemExit):
+        main(["--backend", backend, "--concurrency", "4", "--smoke"])
+
+
+def test_several_episodes_run_at_once_through_tau2_offline(tmp_path):
+    """max_concurrency > 1: tau2's worker threads share one student policy."""
+    pytest.importorskip("tau2")
+    import threading
+
+    from tau2.data_model.message import UserMessage
+    from tau2.registry import registry
+    from tau2.runner.batch import run_tasks
+    from tau2.user.user_simulator import UserSimulator
+
+    from src.catalogs import load_catalog, load_system_prompt
+    from src.config import load_config
+    from src.eval_free import build_student_run_config, register_student_agent
+    from src.harvest import episode_reward
+
+    class StopUser(UserSimulator):
+        def _generate_next_message(self, message, state):
+            return UserMessage(role="user", content="###STOP###" if state.messages else "Hi")
+
+    if "stop_user_test" not in registry._users:
+        registry.register_user(StopUser, "stop_user_test")
+
+    threads = set()
+
+    class Recording:
+        name = "recording"
+
+        def fits(self, prompt):
+            return True
+
+        def __call__(self, prompt):
+            threads.add(threading.get_ident())
+            return "How can I help?"
+
+    cfg = load_config("configs/qwen05b.yaml")
+    name = register_student_agent(
+        80_004, load_catalog(cfg, 16), load_catalog(cfg, 16), load_system_prompt(cfg), Recording()
+    )
+    tasks = [
+        t
+        for t in registry.get_tasks_loader("retail")()
+        if not (t.evaluation_criteria and t.evaluation_criteria.nl_assertions)
+    ][:3]
+    ids = [str(t.id) for t in tasks]
+    run_cfg = build_student_run_config(cfg, name, ids, 0, tmp_path / "b.json", concurrency=3)
+    assert run_cfg.max_concurrency == 3
+    run_cfg = run_cfg.model_copy(update={"user": "stop_user_test", "max_steps": 6})
+    results = run_tasks(run_cfg, tasks, save_path=tmp_path / "b.json", console_display=False)
+    assert sorted(str(s.task_id) for s in results.simulations) == sorted(ids)
+    assert all(episode_reward(s) is not None for s in results.simulations)
