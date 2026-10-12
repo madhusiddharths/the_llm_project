@@ -74,3 +74,30 @@ def install(judge: JudgeConfig) -> None:
 
     generate_and_unfence._judge_patched = True
     nl.generate = generate_and_unfence
+    quiet_cost_lookup()
+
+
+def quiet_cost_lookup() -> None:
+    """Stop tau2 logging an ERROR for every call to an unpriced model. Idempotent.
+
+    tau2 prices each response with litellm.completion_cost and logs the failure
+    when the model has no entry in litellm's price table, which is every :free
+    model we use: two ERROR lines per turn that look like a broken run and are
+    not. The cost is 0.0 either way. tau2 re-creates its log handler inside
+    run_tasks, so filtering the log does not stick; this replaces the function.
+    """
+    from litellm import completion_cost
+    from tau2.utils import llm_utils
+
+    if getattr(llm_utils.get_response_cost, "_quiet", False):
+        return
+
+    def get_response_cost(response) -> float:
+        response.model = llm_utils._parse_ft_model_name(response.model)  # as tau2 does
+        try:
+            return completion_cost(completion_response=response)
+        except Exception:
+            return 0.0
+
+    get_response_cost._quiet = True  # type: ignore[attr-defined]
+    llm_utils.get_response_cost = get_response_cost

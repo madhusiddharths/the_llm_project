@@ -50,3 +50,71 @@ def test_success_table_on_a_tiny_grid():
     assert table["per_seed"] == {0: 1.0, 1: 0.5}
     assert table["pass^2"] == 0.5
     assert (table["tasks_solved_any_seed"], table["tasks_solved_every_seed"]) == (2, 1)
+
+
+def _episodes(fp="f", tasks=("a", "b"), seeds=(0, 1), win=("a", 0), **extra):
+    return [
+        {
+            "config_fingerprint": fp,
+            "task_id": t,
+            "seed": s,
+            "reward": 1.0 if (t, s) == win else 0.0,
+            "student_turns": 4,
+            **extra,
+        }
+        for t in tasks
+        for s in seeds
+    ]
+
+
+def test_a_free_row_reads_model_catalog_and_threshold_from_the_file_name():
+    from pathlib import Path
+
+    from src.stats import free_row
+
+    a = free_row(Path("free-qwen15b-sft-c80.jsonl"), _episodes())
+    assert (a["label"], a["catalog"], a["threshold"], a["complete"]) == (
+        "qwen15b-sft",
+        80,
+        None,
+        True,
+    )
+    assert a["task_success"]["mean"] == 0.25 and a["escalation_rate"] == 0.0
+    d = free_row(Path("free-qwen15b-sft-esc0.70-c80.jsonl"), _episodes(escalated_turns=1))
+    assert (d["label"], d["threshold"], d["escalation_rate"]) == ("qwen15b-sft", 0.7, 0.25)
+    assert free_row(Path("harvest-baseline.jsonl"), _episodes()) is None
+
+
+def test_a_cell_still_filling_reports_a_count_not_a_ci():
+    from pathlib import Path
+
+    from src.stats import free_row
+
+    partial = _episodes()[:3]  # task b has one seed, task a two
+    row = free_row(Path("free-x-c16.jsonl"), partial)
+    assert row["complete"] is False and (row["successes"], row["n_episodes"]) == (1, 3)
+
+
+def test_a_results_file_with_two_identities_is_refused():
+    from pathlib import Path
+
+    from src.stats import free_row
+
+    with pytest.raises(ValueError, match="identities"):
+        free_row(Path("free-x-c16.jsonl"), _episodes(fp="f") + _episodes(fp="g"))
+
+
+def test_the_markdown_puts_stage_a_by_catalog_and_stage_d_by_threshold():
+    from pathlib import Path
+
+    from src.stats import free_markdown, free_row
+
+    rows = [
+        free_row(Path("free-m-c16.jsonl"), _episodes()),
+        free_row(Path("free-m-esc0.50-c80.jsonl"), _episodes(escalated_turns=2)),
+    ]
+    teacher = {80: success_table(_episodes(win=("b", 1)))}
+    md = free_markdown(rows, teacher)
+    assert "| Model | c16 | c80 |" in md
+    assert "| m | 25.0%" in md and "| teacher |  | 25.0%" in md
+    assert "| m | 80 | 0.50 | 50.0% | 25.0%" in md

@@ -26,6 +26,13 @@ CORE = [
     "src.catalogs",
     "src.stats",
     "src.taxonomy",
+    "src.logprobs",
+    "src.router_node",
+    "src.serving",
+    "src.router_service",
+    "src.load_test",
+    "src.mlx_engine",
+    "src.engine_check",
 ]
 # tau2 is in here for src.judge: it patches tau2 internals, and the patch is only
 # safe to import from a test or a CI run because that import stays inside install().
@@ -39,6 +46,8 @@ HEAVY = {
     "wandb",
     "phoenix",
     "tau2",
+    "mlx",
+    "mlx_lm",
 }
 
 

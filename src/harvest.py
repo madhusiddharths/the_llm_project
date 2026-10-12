@@ -41,6 +41,12 @@ try:
     _loguru.add(sys.stderr, level="WARNING")
 except ImportError:  # loguru only present once tau2 is installed
     pass
+try:
+    import litellm
+
+    litellm.suppress_debug_info = True  # its "Provider List" / "Give Feedback" banners
+except ImportError:
+    pass
 
 from src.cli import build_parser, resolve
 from src.hashing import short
@@ -110,16 +116,11 @@ def order_agent_tools(env_tools: dict[str, Any], catalog: list[dict[str, Any]], 
     return [env_tools.get(t["function"]["name"]) or make_stub(t) for t in catalog]
 
 
-def register_padded_agent(catalog: list[dict[str, Any]], size: int) -> str:
-    """Register tau2 agent factory 'llm_agent_c<size>' and return its name.
-
-    Only the AGENT's tool list is padded. tau2 builds the agent from
-    environment.get_tools() (runner/build.py) and executes calls against the
-    environment, which never learns about the distractors.
-    """
-    from tau2.agent.llm_agent import LLMAgent
+def padded_tools(env_tools: list, catalog: list[dict[str, Any]]) -> list:
+    """tau2 Tool objects for `catalog`: the environment's own for native names,
+    schema-only stubs for distractors. What the teacher sees at catalog N, in the
+    D7 baselines and when Stage D escalates a student turn."""
     from tau2.environment.tool import BaseTool
-    from tau2.registry import registry
 
     class DistractorTool(BaseTool):
         tool_schema: dict
@@ -131,12 +132,42 @@ def register_padded_agent(catalog: list[dict[str, Any]], size: int) -> str:
         def _call(self, *args, **kwargs):  # never reached: the env executes calls
             raise RuntimeError(f"distractor {self.name} was executed")
 
+    return order_agent_tools(
+        {t.name: t for t in env_tools},
+        catalog,
+        lambda t: DistractorTool(name=t["function"]["name"], tool_schema=t),
+    )
+
+
+def teacher_llm(cfg) -> str:
+    """The teacher as litellm names it."""
+    return f"openrouter/{cfg.teacher.model}"
+
+
+def teacher_llm_args(cfg, temperature: float) -> dict[str, Any]:
+    """The teacher's litellm arguments, for the harvest and for Stage D escalation."""
+    return {
+        "temperature": temperature,
+        "max_tokens": cfg.teacher.max_tokens,
+        # Pin the upstream provider: OpenRouter routes :free variants across
+        # providers, and a quantisation change mid-harvest would give us a
+        # teacher that is not the teacher we started with.
+        "extra_body": {"provider": {"allow_fallbacks": False}},
+    }
+
+
+def register_padded_agent(catalog: list[dict[str, Any]], size: int) -> str:
+    """Register tau2 agent factory 'llm_agent_c<size>' and return its name.
+
+    Only the AGENT's tool list is padded. tau2 builds the agent from
+    environment.get_tools() (runner/build.py) and executes calls against the
+    environment, which never learns about the distractors.
+    """
+    from tau2.agent.llm_agent import LLMAgent
+    from tau2.registry import registry
+
     def factory(tools, domain_policy, **kwargs):
-        ordered = order_agent_tools(
-            {t.name: t for t in tools},
-            catalog,
-            lambda t: DistractorTool(name=t["function"]["name"], tool_schema=t),
-        )
+        ordered = padded_tools(tools, catalog)
         return LLMAgent(
             tools=ordered,
             domain_policy=domain_policy,
@@ -165,15 +196,8 @@ def build_run_config(
         domain=DOMAIN,
         task_ids=task_ids,
         agent=agent,
-        llm_agent=f"openrouter/{cfg.teacher.model}",
-        llm_args_agent={
-            "temperature": temperature,
-            "max_tokens": cfg.teacher.max_tokens,
-            # Pin the upstream provider: OpenRouter routes :free variants across
-            # providers, and a quantisation change mid-harvest would give us a
-            # teacher that is not the teacher we started with.
-            "extra_body": {"provider": {"allow_fallbacks": False}},
-        },
+        llm_agent=teacher_llm(cfg),
+        llm_args_agent=teacher_llm_args(cfg, temperature),
         user="user_simulator",
         llm_user=cfg.simulator.model,
         llm_args_user={
@@ -219,7 +243,9 @@ def episode_reward(sim) -> float | None:
     return getattr(getattr(sim, "reward_info", None), "reward", None)
 
 
-def affordable_episodes(limiter: RateLimiter, wanted: int) -> int:
+def affordable_episodes(
+    limiter: RateLimiter, wanted: int, per_episode: int = MAX_REQUESTS_PER_EPISODE
+) -> int:
     """How many of `wanted` episodes today's remaining budget can fund in full.
 
     Why this exists rather than just letting limiter.acquire() raise: tau2 runs
@@ -233,7 +259,7 @@ def affordable_episodes(limiter: RateLimiter, wanted: int) -> int:
     remaining = limiter.remaining_today
     if remaining is None:  # no daily cap configured
         return wanted
-    return min(wanted, remaining // MAX_REQUESTS_PER_EPISODE)
+    return min(wanted, remaining // per_episode)
 
 
 def _report_failures(failed: list[tuple[int, float, str, str]]) -> None:
@@ -325,17 +351,10 @@ def main(argv: list[str] | None = None) -> int:
     agent_name, catalog_tag, fingerprint = "llm_agent", "", cfg.teacher_fingerprint()
     if padded:
         from src.catalogs import load_catalog
-        from src.hashing import hash_obj
 
         agent_name = register_padded_agent(load_catalog(cfg, args.catalog), args.catalog)
         catalog_tag = f"-c{args.catalog}"
-        fingerprint = hash_obj(
-            {
-                "teacher": cfg.teacher_fingerprint(),
-                "catalog": args.catalog,
-                "catalog_hash": cfg.eval.catalog_hashes[args.catalog],
-            }
-        )
+        fingerprint = cfg.padded_baseline_fingerprint(args.catalog)
         print(f"[harvest] teacher sees catalog {args.catalog} via agent {agent_name}")
     log = RunLog(
         args.out or cfg.paths.results_dir / f"harvest-{args.mode}{catalog_tag}{suffix}.jsonl",

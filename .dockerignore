@@ -1,0 +1,7 @@
+# Only what docker/router.Dockerfile copies; everything else (the venv, results,
+# trajectories) stays out of the build context.
+*
+!src/
+!configs/
+!data/catalogs/
+**/__pycache__

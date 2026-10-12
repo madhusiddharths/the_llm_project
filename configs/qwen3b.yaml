@@ -1,0 +1,13 @@
+# Stage B, rung 3 (Gate 3, 2026-10-11: go). Identical data and hyperparameters to
+# rungs 1 and 2 — only the base model changes (§6). Qwen2.5 has no 4B or 5B; the
+# next size after 3B is 7B, the plan's designated cut (Stage C).
+#
+# Licence: Qwen2.5-3B ships under the Qwen Research License (non-commercial),
+# unlike 0.5B/1.5B (Apache-2.0). Fine for this study; say so in the README.
+extends: base.yaml
+name: qwen3b
+
+model:
+  base_model: Qwen/Qwen2.5-3B-Instruct
+  params_b: 3.0
+  adapter_repo: null

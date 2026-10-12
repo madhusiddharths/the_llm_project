@@ -1,0 +1,78 @@
+# docker compose up: the 1.5B student on vLLM (GPU) + the router service on :8080.
+#
+#   HF_TOKEN=... OPENROUTER_API_KEY=... docker compose up
+#   curl -s localhost:8080/route -d '{"messages": [{"role": "user", "content": "Hi"}]}'
+#
+# The student's flags are serving.server_command's, with log-probs on; tests/
+# test_router_service.py fails if the two drift apart. Needs an NVIDIA GPU and
+# the NVIDIA container toolkit. THRESHOLD defaults to 0.7; NO_TEACHER=1 reports
+# escalations without calling the teacher (no API quota).
+services:
+  student:
+    # The vLLM version the Kaggle runs used.
+    image: ${VLLM_IMAGE:-vllm/vllm-openai:v0.30.0}
+    command:
+      - --model
+      - Qwen/Qwen2.5-1.5B-Instruct
+      - --dtype
+      - half
+      - --max-model-len
+      - "32768"
+      - --gpu-memory-utilization
+      - "0.9"
+      - --seed
+      - "1234"
+      - --port
+      - "8765"
+      - --logprobs-mode
+      - raw_logprobs
+      - --enable-lora
+      - --max-lora-rank
+      - "16"
+      - --lora-modules
+      - student=${ADAPTER:-madhusiddharths1/tool-router-qwen15b-sft}
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    ipc: host
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 60
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  router:
+    build:
+      context: .
+      dockerfile: docker/router.Dockerfile
+    command:
+      - --config
+      - configs/qwen15b.yaml
+      - --catalog
+      - "80"
+      - --threshold
+      - ${THRESHOLD:-0.7}
+      - --student-url
+      - http://student:8765
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      NO_TEACHER: ${NO_TEACHER:-}
+      HF_TOKEN: ${HF_TOKEN:-}
+    volumes:
+      - hf-cache:/root/.cache/huggingface
+    ports:
+      - "8080:8080"
+    depends_on:
+      student:
+        condition: service_healthy
+
+volumes:
+  hf-cache:

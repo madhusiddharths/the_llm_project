@@ -1,0 +1,27 @@
+{
+  "source": "results/harvest-baseline-c80.jsonl",
+  "teacher": "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "catalog": 80,
+  "n_tasks": 60,
+  "n_episodes": 300,
+  "task_success": {
+    "mean": 0.5467,
+    "ci95_low": 0.5069,
+    "ci95_high": 0.5865,
+    "n": 5
+  },
+  "per_seed": {
+    "0": 0.5333,
+    "1": 0.55,
+    "2": 0.5667,
+    "3": 0.5833,
+    "4": 0.5
+  },
+  "pass^1": 0.5467,
+  "pass^2": 0.4067,
+  "pass^3": 0.3283,
+  "pass^4": 0.28,
+  "pass^5": 0.25,
+  "tasks_solved_any_seed": 48,
+  "tasks_solved_every_seed": 15
+}

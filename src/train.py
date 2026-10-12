@@ -243,12 +243,31 @@ def force_sdpa_kv_expansion(device) -> None:
     sdpa_attention.use_gqa_in_sdpa = lambda *_args, **_kwargs: False
 
 
-def load_base_model(cfg: ExperimentConfig, device):
+def load_base_model(cfg: ExperimentConfig, device, shard: bool = False):
+    """The base model in fp16 on `device`; with `shard`, its layers split across
+    every visible GPU (Kaggle's T4 x2) for a model that does not fit one card.
+
+    Sharding is layer-wise placement (accelerate's device_map), not data or
+    tensor parallelism: one GPU computes at a time and the arithmetic is the
+    single-card arithmetic, so the adapter is the same run either way. Added
+    2026-10-11 for 3B (Stage B), whose weights alone are 6.2 GB of the 14.56.
+    """
     import torch
     from transformers import AutoModelForCausalLM
 
     force_sdpa_kv_expansion(device)
     dtype = torch.float16 if device.type == "cuda" else torch.float32
+    if shard:
+        if device.type != "cuda" or torch.cuda.device_count() < 2:
+            raise RuntimeError("--shard needs at least two GPUs")
+        return AutoModelForCausalLM.from_pretrained(
+            cfg.model.base_model,
+            torch_dtype=dtype,
+            attn_implementation="sdpa",
+            # Even split: "auto" would fill the first card before using the second,
+            # and 6.2 GB of weights fit on one, leaving no room for activations.
+            device_map="balanced",
+        )
     model = AutoModelForCausalLM.from_pretrained(
         cfg.model.base_model, torch_dtype=dtype, attn_implementation="sdpa"
     )
@@ -265,10 +284,14 @@ def masked_lm_loss(model, input_ids, labels):
 
     base = model.get_base_model()
     hidden = base.model(input_ids=input_ids).last_hidden_state
-    targets = labels[:, 1:]
+    # A sharded model (load_base_model(shard=True)) returns hidden states on its
+    # last card; the labels live on the first. A no-op on one device.
+    targets = labels[:, 1:].to(hidden.device)
     mask = targets != IGNORE
     logits = base.lm_head(hidden[:, :-1][mask]).float()
-    return F.cross_entropy(logits, targets[mask], reduction="sum"), int(mask.sum())
+    return F.cross_entropy(logits, targets[mask].to(logits.device), reduction="sum"), int(
+        mask.sum()
+    )
 
 
 # --- training loop -----------------------------------------------------------
@@ -424,6 +447,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--hub-repo", help="push checkpoints and the final adapter here")
     parser.add_argument("--wandb", action="store_true", help="log to Weights & Biases")
+    parser.add_argument(
+        "--shard",
+        action="store_true",
+        help="split the base model's layers across all GPUs (3B on T4 x2); same arithmetic",
+    )
     args = parser.parse_args(argv)
 
     cfg = resolve(args)
@@ -452,7 +480,7 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = wrap_lora(cfg, load_base_model(cfg, device))
+    model = wrap_lora(cfg, load_base_model(cfg, device, shard=args.shard))
     model.print_trainable_parameters()
 
     run = None
@@ -487,6 +515,7 @@ def main(argv: list[str] | None = None) -> int:
         "seconds": round(time.time() - started, 1),
         "versions": {"torch": torch.__version__, "transformers": transformers.__version__},
         "hub_repo": args.hub_repo,
+        "sharded": args.shard,
     }
     final = Path(result["final_dir"])
     (final / "run.json").write_text(json.dumps(summary, indent=2) + "\n")

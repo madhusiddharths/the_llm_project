@@ -1,0 +1,4 @@
+# Apple-silicon inference (lane 2 of the parallel schedule, 2026-10-11):
+# src/mlx_engine.py runs the student for eval_free --backend mlx and
+# generate.py --backend mlx. On top of requirements.txt; Mac only.
+mlx-lm==0.32.0

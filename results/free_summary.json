@@ -1,0 +1,182 @@
+[
+  {
+    "label": "qwen05b-sft",
+    "catalog": 16,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 0,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.0133,
+      "ci95_low": -0.004,
+      "ci95_high": 0.0306,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.0167,
+      "1": 0.0,
+      "2": 0.0,
+      "3": 0.0333,
+      "4": 0.0167
+    },
+    "pass^1": 0.0133,
+    "pass^2": 0.005,
+    "pass^3": 0.0017,
+    "pass^4": 0.0,
+    "pass^5": 0.0,
+    "tasks_solved_any_seed": 2,
+    "tasks_solved_every_seed": 0
+  },
+  {
+    "label": "qwen05b-sft",
+    "catalog": 40,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 1,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.0366,
+      "ci95_low": 0.0274,
+      "ci95_high": 0.0459,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.0333,
+      "1": 0.0333,
+      "2": 0.05,
+      "3": 0.0333,
+      "4": 0.0333
+    },
+    "pass^1": 0.0367,
+    "pass^2": 0.0333,
+    "pass^3": 0.0333,
+    "pass^4": 0.0333,
+    "pass^5": 0.0333,
+    "tasks_solved_any_seed": 3,
+    "tasks_solved_every_seed": 2
+  },
+  {
+    "label": "qwen05b-sft",
+    "catalog": 80,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 0,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.03,
+      "ci95_low": 0.0208,
+      "ci95_high": 0.0392,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.0333,
+      "1": 0.0333,
+      "2": 0.0167,
+      "3": 0.0333,
+      "4": 0.0333
+    },
+    "pass^1": 0.03,
+    "pass^2": 0.0267,
+    "pass^3": 0.0233,
+    "pass^4": 0.02,
+    "pass^5": 0.0167,
+    "tasks_solved_any_seed": 2,
+    "tasks_solved_every_seed": 1
+  },
+  {
+    "label": "qwen15b-sft",
+    "catalog": 16,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 2,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.0766,
+      "ci95_low": 0.0582,
+      "ci95_high": 0.0951,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.05,
+      "1": 0.0833,
+      "2": 0.0833,
+      "3": 0.0833,
+      "4": 0.0833
+    },
+    "pass^1": 0.0767,
+    "pass^2": 0.0333,
+    "pass^3": 0.0233,
+    "pass^4": 0.02,
+    "pass^5": 0.0167,
+    "tasks_solved_any_seed": 12,
+    "tasks_solved_every_seed": 1
+  },
+  {
+    "label": "qwen15b-sft",
+    "catalog": 40,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 0,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.03,
+      "ci95_low": 0.0127,
+      "ci95_high": 0.0473,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.05,
+      "1": 0.0167,
+      "2": 0.0333,
+      "3": 0.0333,
+      "4": 0.0167
+    },
+    "pass^1": 0.03,
+    "pass^2": 0.02,
+    "pass^3": 0.0133,
+    "pass^4": 0.0067,
+    "pass^5": 0.0,
+    "tasks_solved_any_seed": 3,
+    "tasks_solved_every_seed": 0
+  },
+  {
+    "label": "qwen15b-sft",
+    "catalog": 80,
+    "threshold": null,
+    "escalation_rate": 0.0,
+    "degenerate_episodes": 0,
+    "complete": true,
+    "n_tasks": 60,
+    "n_episodes": 300,
+    "task_success": {
+      "mean": 0.0267,
+      "ci95_low": 0.0154,
+      "ci95_high": 0.0379,
+      "n": 5
+    },
+    "per_seed": {
+      "0": 0.0333,
+      "1": 0.0167,
+      "2": 0.0167,
+      "3": 0.0333,
+      "4": 0.0333
+    },
+    "pass^1": 0.0267,
+    "pass^2": 0.02,
+    "pass^3": 0.0133,
+    "pass^4": 0.0067,
+    "pass^5": 0.0,
+    "tasks_solved_any_seed": 2,
+    "tasks_solved_every_seed": 0
+  }
+]

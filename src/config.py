@@ -239,6 +239,21 @@ class ExperimentConfig(_Frozen):
         payload["prompt_template_hash"] = self.harvest_prompt_template_hash
         return hash_obj(payload)
 
+    def padded_baseline_fingerprint(self, catalog: int) -> str:
+        """Identity of a teacher baseline on a padded catalog (D7: 40, 80).
+
+        The teacher fingerprint plus the catalog's pinned hash, so the native
+        baseline's log is never touched. harvest.py writes under it and stats.py
+        reads under it; both must call this.
+        """
+        return hash_obj(
+            {
+                "teacher": self.teacher_fingerprint(),
+                "catalog": catalog,
+                "catalog_hash": self.eval.catalog_hashes[catalog],
+            }
+        )
+
 
 def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]:
     """Overlay wins. Nested dicts merge; lists and scalars replace wholesale."""

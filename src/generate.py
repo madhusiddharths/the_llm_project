@@ -46,9 +46,10 @@ from src.prompts import IM_END
 from src.runlog import read_records
 
 CHUNK = 128  # prompts per vLLM call between appends
-# Candidates kept at the first position, where p(<tool_call>) is read
-# (logprobs.py, choice 5). 20 is vLLM's default ceiling (max_logprobs).
-FIRST_TOP_K = 20
+# Candidates kept at the first position (logprobs.py, choice 5). 20 is vLLM's
+# default ceiling (max_logprobs); serving.py asks the server for the same number.
+from src.serving import FIRST_TOP_K  # noqa: E402
+
 DEFAULT_MAX_MODEL_LEN = 32768  # Qwen2.5 context; catalog 80 prompts reach ~20k tokens
 
 
@@ -210,11 +211,69 @@ def run_hf(
     return {"transformers": transformers.__version__}
 
 
+def episode_order(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Steps grouped by episode, in step order: each prompt then extends the one
+    before it, which is what the MLX prefix cache reuses. step_id is
+    "<task>:<rep>:<message index>"."""
+
+    def key(r: dict[str, Any]) -> tuple[str, str, int]:
+        task, rep, index = r["step_id"].rsplit(":", 2)
+        return task, rep, int(index)
+
+    return sorted(rows, key=key)
+
+
+def run_mlx(
+    cfg, rows, out_path: Path, adapter: str | None, max_model_len: int, logprobs: bool = False
+) -> dict[str, Any]:
+    """Apple-silicon generation (src/mlx_engine.py), one prompt at a time with
+    the prefix cache; same records as run_vllm. `adapter` is the Hub id or path
+    as given: mlx_engine merges it into the base weights once."""
+    import mlx.core as mx
+    import mlx_lm
+
+    from src.mlx_engine import MLXEngine, merged_model_dir
+
+    engine = MLXEngine(merged_model_dir(cfg, adapter), max_tokens=cfg.teacher.max_tokens)
+    limit = max_model_len - cfg.teacher.max_tokens
+    ordered = episode_order(rows)
+    started, reused, total = time.time(), 0, 0
+    for i in range(0, len(ordered), CHUNK):
+        records = []
+        for r in ordered[i : i + CHUNK]:
+            n = len(engine.encode(r["prompt"]))
+            if n > limit:
+                raise ValueError(f"{r['step_id']}: {n} prompt tokens exceed {limit}")
+            g = engine.generate(r["prompt"])
+            reused, total = reused + g.reused_tokens, total + g.prompt_tokens
+            rec = {
+                "step_id": r["step_id"],
+                "completion": g.text,
+                "prompt_tokens": g.prompt_tokens,
+                "completion_tokens": len(g.token_ids),
+                "finish_reason": g.finish_reason,
+            }
+            if logprobs:
+                rec["token_ids"] = g.token_ids
+                rec["token_logprobs"] = g.token_logprobs
+                rec["first_top"] = sorted(
+                    ([t, lp] for t, lp in g.first_alternatives.items()), key=lambda x: -x[1]
+                )
+            records.append(rec)
+        append(out_path, records)
+        done = i + len(records)
+        print(
+            f"[generate] {done}/{len(ordered)}  {(time.time() - started) / done:.1f}s/prompt, "
+            f"{reused / max(total, 1):.0%} of prompt tokens from cache"
+        )
+    return {"mlx": mx.__version__, "mlx_lm": mlx_lm.__version__}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser("Prompts JSONL -> completions JSONL (GPU)")
     parser.add_argument("--prompts", type=Path, required=True)
     parser.add_argument("--adapter", help="LoRA adapter: Hub repo id or local directory")
-    parser.add_argument("--backend", choices=["vllm", "hf"], default="vllm")
+    parser.add_argument("--backend", choices=["vllm", "hf", "mlx"], default="vllm")
     parser.add_argument("--max-model-len", type=int, default=DEFAULT_MAX_MODEL_LEN)
     parser.add_argument("--limit", type=int, help="first N prompts only (use with --smoke)")
     parser.add_argument(
@@ -229,13 +288,15 @@ def main(argv: list[str] | None = None) -> int:
     rows = pending_prompts(args.prompts, args.out, args.limit)
     print(f"[generate] {cfg.model.base_model} adapter={args.adapter} backend={args.backend}")
     print(f"[generate] {len(rows)} prompts to run -> {args.out}")
-    adapter = _resolve_adapter(args.adapter)
-
     started = time.time()
     versions: dict[str, Any] = {}
     if rows:
-        runner = run_vllm if args.backend == "vllm" else run_hf
-        versions = runner(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
+        if args.backend == "mlx":
+            versions = run_mlx(cfg, rows, args.out, args.adapter, args.max_model_len, args.logprobs)
+        else:
+            runner = run_vllm if args.backend == "vllm" else run_hf
+            adapter = _resolve_adapter(args.adapter)
+            versions = runner(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
 
     meta = {
         "base_model": cfg.model.base_model,

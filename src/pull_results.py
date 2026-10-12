@@ -16,6 +16,7 @@ re-pulling them is a no-op.
 
     python src/pull_results.py                    # everything under completions/
     python src/pull_results.py --pattern '*c40*'  # just this session's runs
+    python src/pull_results.py --free             # Stage A/D logs (results/free-*)
 """
 
 from __future__ import annotations
@@ -67,9 +68,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo", default="madhusiddharths1/tool-router-results")
     parser.add_argument("--dest", type=Path, default=Path("results"))
     parser.add_argument("--pattern", default="*", help="glob over the Hub folder, e.g. '*c40*'")
+    parser.add_argument(
+        "--free",
+        action="store_true",
+        help="the free-running logs (eval_free --hub-sync) instead of completions",
+    )
     args = parser.parse_args(argv)
 
     print(f"[pull] {args.repo} -> {args.dest}/")
+    if args.free:
+        # Episode logs grow daily and have no fixed length; stats.py checks them.
+        pattern = "free-*.jsonl" if args.pattern == "*" else args.pattern
+        return 0 if pull(args.repo, args.dest, pattern, prefix="results") else 1
     copied = pull(args.repo, args.dest, args.pattern)
     if not copied:
         print(f"[pull] nothing matched {args.pattern!r}")

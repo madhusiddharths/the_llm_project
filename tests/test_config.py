@@ -157,6 +157,16 @@ def test_the_recorded_harvest_fingerprint_does_not_move():
         assert load_config(path).teacher_fingerprint() == HARVEST_FINGERPRINT
 
 
+# harvest-baseline-c80.jsonl (D7, 300 episodes) is keyed to this.
+C80_BASELINE_FINGERPRINT = "609663a6f18a95e4d55a002094a20b5eb4c361baea31f20338e64d66463876bb"
+
+
+def test_the_recorded_c80_baseline_fingerprint_does_not_move():
+    cfg = load_config("configs/qwen05b.yaml")
+    assert cfg.padded_baseline_fingerprint(80) == C80_BASELINE_FINGERPRINT
+    assert cfg.padded_baseline_fingerprint(40) != C80_BASELINE_FINGERPRINT
+
+
 def test_a_serializer_change_does_not_rekey_the_harvest():
     cfg = load_config("configs/qwen05b.yaml")
     moved = cfg.model_copy(update={"prompt_template_hash": "0" * 64})

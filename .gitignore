@@ -111,3 +111,6 @@ execution-plan.md
 # --- agent tooling ----------------------------------------------------------
 .claude/settings.local.json
 graphify-out/
+
+# Merged student weights for MLX (src/mlx_engine.py); rebuilt from the Hub adapters.
+models/

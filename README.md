@@ -101,7 +101,20 @@ make check     # lint + tests
 make smoke     # every script's --smoke path, well under two minutes
 ```
 
-Two commands reproduce the headline table from checkpoints (`make eval`, week 4).
+```bash
+make eval      # every table above, recomputed from the episode logs (pulls them from the Hub)
+```
+
+`make eval` needs no GPU and no API key: it recomputes task success with 95% CIs across seeds
+(teacher, Stage A, Stage D) and the forced-eval tables from the logs. Re-running the episodes
+themselves is the Kaggle notebooks' job (`notebooks/kaggle_stage_a.ipynb`, `kaggle_stage_d.ipynb`).
+
+The router, served (needs an NVIDIA GPU and the NVIDIA container toolkit):
+
+```bash
+HF_TOKEN=... OPENROUTER_API_KEY=... docker compose up    # vLLM student + router on :8080
+curl -s localhost:8080/route -d '{"messages": [{"role": "user", "content": "Hi"}]}'
+```
 
 ---
 

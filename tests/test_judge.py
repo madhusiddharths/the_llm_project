@@ -119,3 +119,26 @@ def test_install_is_idempotent(nl_module):
     once = nl_module.generate
     install(judge)
     assert nl_module.generate is once
+
+
+def test_an_unpriced_model_costs_zero_without_an_error_log():
+    """Every :free call made tau2 log an ERROR from its price lookup (2026-10-11)."""
+    pytest.importorskip("tau2")
+    from types import SimpleNamespace
+
+    from loguru import logger
+    from tau2.utils import llm_utils
+
+    from src.judge import quiet_cost_lookup
+
+    quiet_cost_lookup()
+    quiet_cost_lookup()  # idempotent
+    seen = []
+    handler = logger.add(seen.append, level="ERROR")
+    try:
+        cost = llm_utils.get_response_cost(
+            SimpleNamespace(model="nvidia/nemotron-3-ultra-550b-a55b:free")
+        )
+    finally:
+        logger.remove(handler)
+    assert cost == 0.0 and seen == []

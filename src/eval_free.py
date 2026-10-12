@@ -77,7 +77,7 @@ from __future__ import annotations
 import sys
 import time
 import uuid
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -93,12 +93,21 @@ try:
     _loguru.add(sys.stderr, level="WARNING")
 except ImportError:
     pass
+try:
+    import litellm
+
+    litellm.suppress_debug_info = True  # its "Provider List" / "Give Feedback" banners
+except ImportError:
+    pass
 
 from src.catalogs import load_catalog, load_system_prompt
 from src.cli import build_parser, resolve
 from src.hashing import hash_obj, short
 from src.invariants import InvariantViolation, check_all
+from src.logprobs import StepConfidence
 from src.prompts import Parsed, parse_completion, serialize_state, template_hash
+from src.router_node import Route, should_escalate
+from src.serving import SERVER_PORT, StudentClient, server_command, wait_ready
 from src.trajectories import DEGENERATE_USER_CHARS
 
 EMPTY_REPLY = "[empty response]"
@@ -160,12 +169,46 @@ def episode_stats(
     user_lengths = [len(m.get("content") or "") for m in messages if m.get("role") == "user"]
     return {
         "student_turns": len(student),
+        # Stage D: turns the teacher answered instead (0 outside Stage D).
+        "escalated_turns": sum(1 for r in raws if r.get("escalated")),
         "tool_calls": len(calls),
         "parse_errors": sum(1 for r in raws if r.get("parse_error")),
         "context_overflows": sum(1 for r in raws if r.get("context_overflow")),
         "distractor_calls": sum(1 for n in calls if n in catalog_names and n not in native_names),
         "hallucinated_calls": sum(1 for n in calls if n not in catalog_names),
         "degenerate_user_turn": any(n > DEGENERATE_USER_CHARS for n in user_lengths),
+    }
+
+
+@dataclass(frozen=True)
+class Escalation:
+    """Stage D: below `threshold`, the teacher answers the turn (router_node.py)."""
+
+    threshold: float
+    llm: str  # harvest.teacher_llm
+    llm_args: dict[str, Any]  # harvest.teacher_llm_args, at the baseline's temperature
+
+
+def escalated_episode_budget(cfg) -> int:
+    """Worst-case API requests for one Stage D episode, used in place of
+    harvest.MAX_REQUESTS_PER_EPISODE (22, measured on teacher-only episodes).
+    Escalated students loop to max_steps more often than the teacher did, so this
+    is the bound rather than a measurement: every one of max_steps messages an
+    API call (simulator or teacher; tool results are local, so this over-counts),
+    plus the judge and one retry of it."""
+    return cfg.simulator.max_turns * 2 + 2
+
+
+def routed_raw(route: Route, completion: str | None, conf: StepConfidence | None) -> dict[str, Any]:
+    """Audit fields for a Stage D turn, escalated or not. The student's own
+    completion is kept either way, so the decision can be re-checked offline."""
+    return {
+        "escalated": route.escalate,
+        "route_reason": route.reason.value,
+        "threshold": route.threshold,
+        "step_confidence": route.step_confidence,
+        "student_completion": completion,
+        "student_confidence": conf.as_dict() if conf is not None else None,
     }
 
 
@@ -227,66 +270,17 @@ class VLLMPolicy:
         return out[0].outputs[0].text
 
 
-SERVER_PORT = 8765
-SERVED_NAME = "student"  # the name the adapter (or the bare model) is served under
-
-
-def server_command(
-    cfg, adapter_path: str | None, max_model_len: int, port: int = SERVER_PORT
-) -> list[str]:
-    """`vllm serve` with VLLMPolicy's engine settings, so the two differ only in
-    how requests arrive: one at a time in-process, or several at once over HTTP."""
-    cmd = [
-        sys.executable, "-m", "vllm.entrypoints.openai.api_server",
-        "--model", cfg.model.base_model,
-        "--dtype", "half",
-        "--max-model-len", str(max_model_len),
-        "--gpu-memory-utilization", "0.9",
-        "--seed", str(cfg.seed),
-        "--port", str(port),
-    ]  # fmt: skip
-    if adapter_path is None:
-        cmd += ["--served-model-name", SERVED_NAME]
-    else:
-        cmd += [
-            "--enable-lora",
-            "--max-lora-rank", str(cfg.train.lora_r),
-            "--lora-modules", f"{SERVED_NAME}={adapter_path}",
-        ]  # fmt: skip
-    return cmd
-
-
 def results_engine(backend: str) -> str:
     """The backend as it enters a results file's identity.
 
     DECIDED 2026-09-28: the server is the same vLLM engine with the same settings
     as the in-process one, so both count as "vllm" and a cell may mix them. This
     let 1.5B c16 keep its 167 serial episodes when the rest moved to the server.
-    Each episode still records its own backend and concurrency. hf and fixed are
-    different engines and stay separate.
+    Each episode still records its own backend and concurrency. hf, mlx and fixed
+    are different engines and stay separate: an MLX cell never mixes with a vLLM
+    one (src/mlx_engine.py).
     """
     return "vllm" if backend == "server" else backend
-
-
-def completion_request(cfg, prompt: str) -> dict[str, Any]:
-    """The /v1/completions body: VLLMPolicy's SamplingParams, field for field."""
-    from src.prompts import IM_END
-
-    return {
-        "model": SERVED_NAME,
-        "prompt": prompt,
-        "temperature": 0.0,
-        "max_tokens": cfg.teacher.max_tokens,
-        "stop": [IM_END],
-        "seed": cfg.seed,
-    }
-
-
-def completion_text(body: Mapping[str, Any]) -> str:
-    choices = body.get("choices") or []
-    if len(choices) != 1:
-        raise ValueError(f"expected one completion, got {len(choices)}: {body}")
-    return str(choices[0].get("text") or "")
 
 
 class ServerPolicy:
@@ -298,47 +292,37 @@ class ServerPolicy:
     round differently. That is accepted within a cell (results_engine): the
     API user simulator already varies episode to episode by more than that.
 
-    Requests go through urllib, NOT litellm: the throttle counts every litellm
-    call against the daily OpenRouter quota, and the student is local.
+    This process starts and owns the server; requests go through
+    serving.StudentClient (urllib, never litellm, so they cost no quota).
     """
 
     name = "server"
 
-    def __init__(self, cfg, adapter: str | None, max_model_len: int, port: int = SERVER_PORT):
+    def __init__(
+        self,
+        cfg,
+        adapter: str | None,
+        max_model_len: int,
+        port: int = SERVER_PORT,
+        logprobs: bool = False,
+    ):
         import atexit
         import subprocess
 
-        from transformers import AutoTokenizer
-
         from src.generate import _resolve_adapter
 
-        self.cfg = cfg
-        self.url = f"http://127.0.0.1:{port}"
-        self.limit = max_model_len - cfg.teacher.max_tokens
-        self.tokenizer = AutoTokenizer.from_pretrained(cfg.model.base_model)
-        cmd = server_command(cfg, _resolve_adapter(adapter), max_model_len, port)
+        url = f"http://127.0.0.1:{port}"
+        self.client = StudentClient.for_model(cfg, url, max_model_len)
+        cmd = server_command(cfg, _resolve_adapter(adapter), max_model_len, port, logprobs)
         print(f"[eval_free] starting vLLM server: {' '.join(cmd)}")
         self.proc = subprocess.Popen(cmd)
         atexit.register(self.close)
-        self._wait_ready()
-
-    def _wait_ready(self, timeout_s: float = 900.0) -> None:
-        import urllib.request
-
-        deadline = time.time() + timeout_s
-        while time.time() < deadline:
-            if self.proc.poll() is not None:
-                raise RuntimeError(f"vLLM server exited with code {self.proc.returncode}")
-            try:
-                with urllib.request.urlopen(f"{self.url}/health", timeout=5) as r:
-                    if r.status == 200:
-                        print("[eval_free] vLLM server ready")
-                        return
-            except OSError:
-                pass
-            time.sleep(5)
-        self.close()
-        raise TimeoutError(f"vLLM server not ready after {timeout_s:.0f}s")
+        try:
+            wait_ready(url, alive=lambda: self.proc.poll() is None)
+        except (RuntimeError, TimeoutError):
+            self.close()
+            raise
+        print("[eval_free] vLLM server ready")
 
     def close(self) -> None:
         if self.proc.poll() is None:
@@ -349,19 +333,51 @@ class ServerPolicy:
                 self.proc.kill()
 
     def fits(self, prompt: str) -> bool:
-        return len(self.tokenizer(prompt, add_special_tokens=False)["input_ids"]) <= self.limit
+        return self.client.fits(prompt)
 
     def __call__(self, prompt: str) -> str:
-        import json
-        import urllib.request
+        return self.client.complete(prompt)
 
-        req = urllib.request.Request(
-            f"{self.url}/v1/completions",
-            data=json.dumps(completion_request(self.cfg, prompt)).encode(),
-            headers={"Content-Type": "application/json"},
+    def score(self, prompt: str) -> tuple[str, StepConfidence]:
+        """The completion and its step confidence (src/logprobs.py), for Stage D."""
+        return self.client.score(prompt)
+
+
+class MLXPolicy:
+    """The student on the Mac's GPU (src/mlx_engine.py). Episodes may run
+    concurrently (--concurrency): each keeps its own prefix cache and they take
+    turns on the one model, so the GPU works while others wait on the API."""
+
+    name = "mlx"
+
+    def __init__(self, cfg, adapter: str | None, max_model_len: int, concurrency: int = 1):
+        from src.logprobs import TOOL_CALL_TOKEN
+        from src.mlx_engine import MLXEngine, merged_model_dir
+
+        path = merged_model_dir(cfg, adapter)
+        print(f"[eval_free] MLX student from {path}")
+        self.engine = MLXEngine(path, max_tokens=cfg.teacher.max_tokens, pool_size=concurrency)
+        self.limit = max_model_len - cfg.teacher.max_tokens
+        self.call_token_id = self.engine.tokenizer.convert_tokens_to_ids(TOOL_CALL_TOKEN)
+
+    def fits(self, prompt: str) -> bool:
+        return len(self.engine.encode(prompt)) <= self.limit
+
+    def __call__(self, prompt: str) -> str:
+        return self.engine.generate(prompt).text
+
+    def score(self, prompt: str) -> tuple[str, StepConfidence]:
+        from src.logprobs import score_completion
+
+        g = self.engine.generate(prompt)
+        conf = score_completion(
+            g.token_ids,
+            g.token_logprobs,
+            self.engine.decode,
+            first_alternatives=g.first_alternatives or None,
+            call_token_id=self.call_token_id,
         )
-        with urllib.request.urlopen(req, timeout=600) as r:
-            return completion_text(json.loads(r.read()))
+        return g.text, conf
 
 
 class HFPolicy:
@@ -462,9 +478,22 @@ def check_tau2_matches_snapshot(tools, domain_policy: str, system_text: str, nat
 
 
 def register_student_agent(
-    size: int, catalog: list, native: list, system_text: str, policy: Callable[[str], str]
+    size: int,
+    catalog: list,
+    native: list,
+    system_text: str,
+    policy: Any,
+    escalation: Escalation | None = None,
 ) -> str:
-    """Register tau2 agent factory 'student_c<size>' and return its name."""
+    """Register tau2 agent factory 'student_c<size>' (Stage D:
+    'student_c<size>_t<threshold>') and return its name.
+
+    With `escalation`, each turn is scored (policy.score) and routed by
+    router_node.should_escalate. An escalated turn is answered by tau2's own LLM
+    call, with the teacher, the catalog's tools (harvest.padded_tools) and tau2's
+    system prompt: exactly the D7 baseline teacher at this catalog, on this
+    conversation so far.
+    """
     from tau2.agent.llm_agent import LLMAgent
     from tau2.data_model.message import AssistantMessage, MultiToolMessage, ToolCall
     from tau2.registry import registry
@@ -479,11 +508,19 @@ def register_student_agent(
                 system=system_text, tools=catalog, messages=history_dicts(state.messages)
             )
             started = time.time()
-            if policy.fits(prompt):
-                turn = decide_turn(policy(prompt))
+            fits = policy.fits(prompt)
+            if escalation is None:
+                turn = decide_turn(policy(prompt)) if fits else decide_turn(None, overflow=True)
+                raw = turn.raw
             else:
-                turn = decide_turn(None, overflow=True)
-            raw = {**turn.raw, "generation_seconds": round(time.time() - started, 3)}
+                completion, conf = policy.score(prompt) if fits else (None, None)
+                route = should_escalate(conf, escalation.threshold)
+                audit = routed_raw(route, completion, conf)
+                if route.escalate:
+                    return self._teacher_turn(state, audit, started)
+                turn = decide_turn(completion)
+                raw = {**turn.raw, **audit}
+            raw = {**raw, "generation_seconds": round(time.time() - started, 3)}
             return AssistantMessage(
                 role="assistant",
                 content=turn.content,
@@ -497,8 +534,31 @@ def register_student_agent(
                 raw_data=raw,
             )
 
+        def _teacher_turn(self, state, audit: dict[str, Any], started: float):
+            from tau2.utils.llm_utils import generate
+
+            assert escalation is not None
+            msg = generate(
+                model=escalation.llm,
+                tools=self.tools,
+                messages=state.system_messages + state.messages,
+                call_name="agent_response",
+                **escalation.llm_args,
+            )
+            raw = {
+                **audit,
+                "teacher_raw": msg.raw_data,
+                "generation_seconds": round(time.time() - started, 3),
+            }
+            return msg.model_copy(update={"raw_data": raw})
+
     def factory(tools, domain_policy, **kwargs):
         check_tau2_matches_snapshot(tools, domain_policy, system_text, native)
+        if escalation is not None:
+            from src.harvest import padded_tools
+
+            # The teacher's tools; the student renders `catalog` itself.
+            tools = padded_tools(tools, catalog)
         return StudentAgent(
             tools=tools,
             domain_policy=domain_policy,
@@ -506,7 +566,7 @@ def register_student_agent(
             llm_args={},
         )
 
-    name = f"student_c{size}"
+    name = f"student_c{size}" + (f"_t{escalation.threshold}" if escalation else "")
     if registry.get_agent_factory(name) is None:
         registry.register_agent_factory(factory, name)
     return name
@@ -564,12 +624,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--adapter", help="LoRA adapter: Hub repo id or local dir (omit: zero-shot)"
     )
-    parser.add_argument("--backend", choices=["vllm", "server", "hf", "fixed"], default="vllm")
+    parser.add_argument(
+        "--backend", choices=["vllm", "server", "mlx", "hf", "fixed"], default="vllm"
+    )
     parser.add_argument(
         "--concurrency",
         type=int,
         default=1,
-        help="episodes run at once; >1 needs --backend server (or fixed)",
+        help="episodes run at once; >1 needs --backend server or mlx (or fixed)",
+    )
+    parser.add_argument(
+        "--escalate",
+        type=float,
+        metavar="THRESHOLD",
+        help="Stage D: turns with step confidence below this go to the teacher (needs server)",
     )
     parser.add_argument("--max-model-len", type=int, default=32768)
     parser.add_argument(
@@ -586,7 +654,10 @@ def main(argv: list[str] | None = None) -> int:
     cfg = resolve(args)
     if args.concurrency > 1 and args.backend in ("vllm", "hf"):
         # One in-process engine is not thread-safe; the server batches for us.
-        parser.error("--concurrency > 1 needs --backend server")
+        parser.error("--concurrency > 1 needs --backend server or mlx")
+    if args.escalate is not None and args.backend not in ("server", "mlx"):
+        # Log-prob scoring is wired for the server and MLX paths only.
+        parser.error("--escalate needs --backend server or mlx")
     # A tau2 call waits for its slowest episode, so give each slot two tasks.
     args.batch = args.batch or (4 if args.concurrency == 1 else 2 * args.concurrency)
     print(f"[eval_free] {', '.join(check_all(cfg))}")
@@ -617,11 +688,14 @@ def main(argv: list[str] | None = None) -> int:
     limiter = RateLimiter(cfg.teacher.requests_per_minute, cfg.teacher.requests_per_day)
     install(limiter)
     install_judge(cfg.judge)
+    per_episode = (
+        MAX_REQUESTS_PER_EPISODE if args.escalate is None else escalated_episode_budget(cfg)
+    )
     # Before loading the student: a spent day would otherwise cost ~1.3 GPU min per cell.
-    if affordable_episodes(limiter, 1) == 0:
+    if affordable_episodes(limiter, 1, per_episode) == 0:
         print(
             f"[eval_free] daily budget spent: {limiter.remaining_today} left "
-            f"(an episode may need {MAX_REQUESTS_PER_EPISODE}); not loading the student."
+            f"(an episode may need {per_episode}); not loading the student."
         )
         return 0
 
@@ -637,20 +711,13 @@ def main(argv: list[str] | None = None) -> int:
     catalog = load_catalog(cfg, args.catalog)
     catalog_names = {t["function"]["name"] for t in catalog}
     native_names = {t["function"]["name"] for t in native}
-
-    if args.backend == "fixed":
-        policy = FixedPolicy()
-    elif args.backend == "vllm":
-        policy = VLLMPolicy(cfg, args.adapter, args.max_model_len)
-    elif args.backend == "server":
-        policy = ServerPolicy(cfg, args.adapter, args.max_model_len)
-    else:
-        policy = HFPolicy(cfg, args.adapter, args.max_model_len)
-    agent = register_student_agent(args.catalog, catalog, native, system_text, policy)
+    escalating = args.escalate is not None
 
     tag = args.label or (f"{cfg.name}-sft" if args.adapter else f"{cfg.name}-zeroshot")
     if args.backend == "fixed":
         tag = f"{cfg.name}-fixed"
+    if escalating:
+        tag += f"-esc{args.escalate:.2f}"
     suffix = ".smoke" if cfg.smoke else ""
     identity = {
         "config": cfg.fingerprint(),
@@ -661,6 +728,9 @@ def main(argv: list[str] | None = None) -> int:
         "adapter": args.adapter,
         "backend": results_engine(args.backend),
     }
+    if escalating:
+        # Only when set, so every Stage A identity stays byte-identical.
+        identity["escalation"] = {"threshold": args.escalate, "signal": "step"}
     log = RunLog(
         cfg.paths.results_dir / f"free-{tag}-c{args.catalog}{suffix}.jsonl",
         config_fingerprint=hash_obj(identity),
@@ -682,6 +752,29 @@ def main(argv: list[str] | None = None) -> int:
         f"[eval_free] {len(done)}/{len(targets) * len(variants)} cells complete, {len(pending)} to run"
     )
     print(f"[eval_free] quota: {limiter.used_today} used today, {limiter.remaining_today} left")
+    if not pending:
+        # Before loading the student: a finished cell would otherwise start a
+        # vLLM server (~1.5 GPU min) on every daily run of the notebook.
+        print("[eval_free] nothing to run; not loading the student.")
+        return 0
+
+    if args.backend == "fixed":
+        policy = FixedPolicy()
+    elif args.backend == "vllm":
+        policy = VLLMPolicy(cfg, args.adapter, args.max_model_len)
+    elif args.backend == "server":
+        policy = ServerPolicy(cfg, args.adapter, args.max_model_len, logprobs=escalating)
+    elif args.backend == "mlx":
+        policy = MLXPolicy(cfg, args.adapter, args.max_model_len, args.concurrency)
+    else:
+        policy = HFPolicy(cfg, args.adapter, args.max_model_len)
+    escalation = None
+    if escalating:
+        from src.harvest import teacher_llm, teacher_llm_args
+
+        # 0.0: the D7 baselines' temperature, so an escalated turn is that teacher.
+        escalation = Escalation(args.escalate, teacher_llm(cfg), teacher_llm_args(cfg, 0.0))
+    agent = register_student_agent(args.catalog, catalog, native, system_text, policy, escalation)
 
     from tau2.registry import registry
     from tau2.runner.batch import run_tasks
@@ -694,11 +787,11 @@ def main(argv: list[str] | None = None) -> int:
             pool = [t for (t, r, _) in pending if r == rep]
             for i in range(0, len(pool), args.batch):
                 chunk = pool[i : i + args.batch]
-                affordable = affordable_episodes(limiter, len(chunk))
+                affordable = affordable_episodes(limiter, len(chunk), per_episode)
                 if affordable == 0:
                     raise DailyQuotaExhausted(
                         f"{limiter.used_today}/{cfg.teacher.requests_per_day} used; stopping with "
-                        f"{limiter.remaining_today} left (an episode may need {MAX_REQUESTS_PER_EPISODE})"
+                        f"{limiter.remaining_today} left (an episode may need {per_episode})"
                     )
                 chunk = chunk[:affordable]
                 save_to = batch_path(traj_dir, session, rep, i // args.batch)
@@ -732,6 +825,7 @@ def main(argv: list[str] | None = None) -> int:
                             "trajectory_file": str(save_to),
                             "backend": args.backend,
                             "concurrency": args.concurrency,
+                            **({"threshold": args.escalate} if escalating else {}),
                             **episode_stats(msgs, catalog_names, native_names),
                         },
                     )
