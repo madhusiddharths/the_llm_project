@@ -277,3 +277,38 @@ def test_present_env_key_passes(monkeypatch):
 
 def test_clean_config_passes_every_check():
     assert len(check_all(load_config(REAL))) == 6
+
+
+# --- v2/v3 invariants (plan X10) -----------------------------------------------
+
+from src.invariants import (  # noqa: E402
+    assert_pairs_train_only,
+    assert_parent_is_sft,
+    assert_reward_deterministic,
+    assert_states_train_only,
+)
+
+
+def test_a_pair_from_an_eval_task_is_refused():
+    assert_pairs_train_only(["1", "2"], ["1", "2", "3"])
+    with pytest.raises(InvariantViolation, match="outside the train split"):
+        assert_pairs_train_only(["1", "99"], ["1", "2"])
+
+
+def test_a_grpo_state_from_an_eval_task_is_refused():
+    with pytest.raises(InvariantViolation):
+        assert_states_train_only(["99"], ["1"])
+
+
+def test_dpo_must_branch_from_a_registered_sft_adapter():
+    registry = {"me/tool-router-qwen15b-sft": {"sha256": "a" * 64}}
+    assert assert_parent_is_sft("a" * 64, registry) == "me/tool-router-qwen15b-sft"
+    with pytest.raises(InvariantViolation, match="not a registered SFT checkpoint"):
+        assert_parent_is_sft("b" * 64, registry)
+
+
+def test_a_noisy_reward_is_refused():
+    assert_reward_deterministic(lambda s: len(str(s)), ["a", "bb"])
+    calls = iter(range(100))
+    with pytest.raises(InvariantViolation, match="not deterministic"):
+        assert_reward_deterministic(lambda s: next(calls), ["a"])

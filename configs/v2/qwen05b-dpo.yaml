@@ -1,0 +1,3 @@
+# DPO branch of the qwen05b SFT adapter (plan X4: a branch from SFT, never stacked).
+extends: [../qwen05b.yaml, dpo.yaml]
+name: qwen05b-dpo

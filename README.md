@@ -93,6 +93,14 @@ Best small model, catalog 80, logprob-thresholded routing to the teacher.
      The in-house user simulator is weaker than a frontier one, so absolute
      success rates are likely optimistic while the relative ordering holds. -->
 
+<!-- FACTS FOR THIS SECTION (Claude, 2026-10-22; your words go above):
+     The simulator and judge changed mid-project. nemotron-3-super-120b-a12b:free
+     lost its only provider on 2026-10-20, so Stage D onward runs under
+     gemma-4-31b-it:free (configs/sim/gemma.yaml), with the teacher baselines
+     re-run under it. Stage A and Stage B's finished cells are the epoch-1 table;
+     no number is ever compared across the two simulators (eval_free and
+     stats.py enforce it). execution-plan.md Log, 2026-10-20 to 10-22. -->
+
 ## 8. Reproduce it
 
 ```bash

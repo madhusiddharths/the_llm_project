@@ -178,3 +178,62 @@ def test_teacher_fingerprint_tracks_a_split_change():
     cfg = load_config("configs/qwen05b.yaml")
     moved = cfg.model_copy(update={"split": cfg.split.model_copy(update={"split_seed": 999})})
     assert cfg.teacher_fingerprint() != moved.teacher_fingerprint()
+
+
+# --- v2 schema (plan X10) and simulator epochs ---------------------------------
+
+# Every Stage A/B results identity embeds these. If this test fails, a schema or
+# base.yaml change has orphaned the v1 cells from their resume logs.
+V1_FINGERPRINTS = {
+    "configs/qwen05b.yaml": "9529110e2bb4ef268150291aeb6ad171c6d561a408cc2ec33851657d8f283cf9",
+    "configs/qwen15b.yaml": "2986acce54e36494547a6af74d6c96ecee9571e29102a511bd85230df6476822",
+    "configs/qwen3b.yaml": "767962db61ce61cb605364bb7aad766f469b2b1b0e8b299724b0fcbc0ef94b4d",
+}
+
+
+def test_the_v1_cell_fingerprints_do_not_move():
+    for path, expected in V1_FINGERPRINTS.items():
+        assert load_config(path).fingerprint() == expected, path
+
+
+def test_unset_extension_sections_stay_out_of_the_fingerprint():
+    cfg = load_config("configs/qwen15b.yaml")
+    assert cfg.dpo is None and cfg.ablation is None and cfg.sim_tag is None
+    assert cfg.method() == "sft"
+
+
+def test_a_set_extension_section_enters_the_fingerprint():
+    v1 = load_config("configs/qwen15b.yaml")
+    dpo = load_config("configs/v2/qwen15b-dpo.yaml")
+    e1 = load_config("configs/v2/qwen15b-e1.yaml")
+    assert dpo.method() == "dpo" and dpo.dpo is not None
+    assert len({v1.fingerprint(), dpo.fingerprint(), e1.fingerprint()}) == 3
+    # the harvest they all read is the same one
+    assert dpo.teacher_fingerprint() == e1.teacher_fingerprint() == HARVEST_FINGERPRINT
+
+
+def test_extends_accepts_a_list_merged_left_to_right(tmp_path):
+    (tmp_path / "a.yaml").write_text(
+        "extends: " + str(Path("configs/qwen05b.yaml").resolve()) + "\n"
+    )
+    (tmp_path / "overlay.yaml").write_text("simulator:\n  temperature: 0.5\n")
+    (tmp_path / "c.yaml").write_text("extends: [a.yaml, overlay.yaml]\nname: c\n")
+    cfg = load_config(tmp_path / "c.yaml")
+    assert cfg.name == "c"
+    assert cfg.simulator.temperature == 0.5  # from the overlay
+    assert cfg.simulator.max_turns == 15  # untouched keys survive the merge
+
+
+def test_dpo_smoke_overrides_apply_only_where_dpo_is_set():
+    assert load_config("configs/v2/qwen15b-dpo.yaml", smoke=True).dpo.max_steps == 1
+    assert load_config("configs/qwen15b.yaml", smoke=True).dpo is None
+
+
+def test_the_gemma_epoch_changes_the_harness_and_nothing_else():
+    v1 = load_config("configs/qwen3b.yaml")
+    g = load_config("configs/gemma/qwen3b.yaml")
+    assert g.sim_tag == "gemma" and g.name == "qwen3b-gemma"
+    assert g.simulator.model != v1.simulator.model and g.judge.model != v1.judge.model
+    assert g.simulator.temperature == 0.0 and g.simulator.seed == v1.simulator.seed
+    assert g.teacher == v1.teacher and g.model == v1.model and g.train == v1.train
+    assert g.teacher_fingerprint() != v1.teacher_fingerprint()  # separate logs by construction

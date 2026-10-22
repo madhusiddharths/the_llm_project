@@ -1,0 +1,9 @@
+# SFT checkpoints DPO/GRPO may branch from (plan X4). Written by
+# `python src/registry.py add <repo>`; sha256 is adapter_model.safetensors.
+sft:
+  madhusiddharths1/tool-router-qwen05b-sft:
+    sha256: 565943c8be0120c98da531bcdd10a03af383f338e6a156029321af51630deca7
+  madhusiddharths1/tool-router-qwen15b-sft:
+    sha256: c3fb48a45d2705e31886d6d3e2e6c6bf066ba6f7f85a4ca8d14677474068d930
+  madhusiddharths1/tool-router-qwen3b-sft:
+    sha256: 0b24b67c3ba3133977389c8c3345fa1e09e78bfce3dab60257bda33e49f14602

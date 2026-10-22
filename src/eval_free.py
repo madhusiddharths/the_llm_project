@@ -36,8 +36,9 @@ error, exactly as a hallucinated name does.
 
 Guards before any quota is spent:
   - The harness is the baseline's: cfg.teacher_fingerprint() (teacher, split,
-    simulator, judge) must equal the fingerprint recorded in
-    results/harvest-baseline.jsonl. Stage A students face the same user.
+    simulator, judge) must be one some results/harvest-baseline*.jsonl was
+    recorded under. Students face the same user the teacher faced; a new
+    simulator epoch (configs/sim/) needs its own teacher baseline first.
   - tau2 on this machine renders the same system prompt and native tool
     schemas as the pinned snapshot (data/catalogs/). A different tau2 checkout
     fails here, not three days into Stage A. Pinned tau2: 672227c6 (Kaggle:
@@ -604,18 +605,33 @@ def build_student_run_config(
 
 
 def assert_same_harness_as_baseline(cfg) -> str:
-    """Stage A students must face the simulator and judge the teacher faced."""
+    """Students must face the simulator and judge some teacher baseline faced.
+
+    Any catalog's baseline counts: the native log is keyed to the teacher
+    fingerprint, the padded ones (D7) to it plus the catalog hash. A new
+    simulator epoch (configs/sim/) therefore cannot run a student cell until its
+    own teacher baseline has started, which is the re-anchoring rule.
+    Returns the teacher fingerprint, the harness half of every cell identity.
+    """
     from src.runlog import read_records
 
-    log = cfg.paths.results_dir / "harvest-baseline.jsonl"
-    recorded = {r["config_fingerprint"] for r in read_records(log) if not r.get("smoke")}
     live = cfg.teacher_fingerprint()
-    if live not in recorded:
-        raise InvariantViolation(
-            f"teacher fingerprint {short(live)} (teacher, split, simulator, judge) is not the "
-            f"one the baseline in {log} was recorded under ({sorted(short(f) for f in recorded)})"
-        )
-    return live
+    expected = {"harvest-baseline.jsonl": live}
+    for size in cfg.eval.catalog_hashes:
+        if size != 16:
+            expected[f"harvest-baseline-c{size}.jsonl"] = cfg.padded_baseline_fingerprint(size)
+    for name, fingerprint in expected.items():
+        log = cfg.paths.results_dir / name
+        if any(
+            r["config_fingerprint"] == fingerprint and not r.get("smoke") for r in read_records(log)
+        ):
+            return live
+    raise InvariantViolation(
+        f"no teacher baseline in {cfg.paths.results_dir}/harvest-baseline*.jsonl was recorded "
+        f"under teacher fingerprint {short(live)} (teacher, split, simulator, judge). Run the "
+        "teacher baseline under this simulator first (`make baseline`), or students and "
+        "teacher face different users."
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -825,6 +841,9 @@ def main(argv: list[str] | None = None) -> int:
                             "trajectory_file": str(save_to),
                             "backend": args.backend,
                             "concurrency": args.concurrency,
+                            # Which user this episode faced (stats groups by it);
+                            # records from before 2026-10-22 lack it: base.yaml's.
+                            "simulator": cfg.simulator.model,
                             **({"threshold": args.escalate} if escalating else {}),
                             **episode_stats(msgs, catalog_names, native_names),
                         },

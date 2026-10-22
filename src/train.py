@@ -452,6 +452,9 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="split the base model's layers across all GPUs (3B on T4 x2); same arithmetic",
     )
+    parser.add_argument(
+        "--run-name", help="W&B run name (default: <config name>-sft); E1 uses qwen15b-sft-f25"
+    )
     args = parser.parse_args(argv)
 
     cfg = resolve(args)
@@ -489,7 +492,7 @@ def main(argv: list[str] | None = None) -> int:
 
         run = wandb.init(
             project=os.environ.get("WANDB_PROJECT", "tool-router-ladder"),
-            name=f"{cfg.name}-sft",
+            name=args.run_name or f"{cfg.name}-sft",
             config={**cfg.model_dump(mode="json"), "manifest": manifest},
         )
 
@@ -506,6 +509,10 @@ def main(argv: list[str] | None = None) -> int:
         **result,
         "config": cfg.name,
         "config_fingerprint": cfg.fingerprint(),
+        "method": cfg.method(),
+        "run_name": args.run_name,
+        # E1 subsets record which fraction of the teacher tasks they hold.
+        "ablation": manifest.get("ablation"),
         "base_model": cfg.model.base_model,
         "smoke": cfg.smoke,
         "manifest": {

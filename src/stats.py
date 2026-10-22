@@ -99,6 +99,10 @@ def success_table(records: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
     }
 
 
+# Records written before 2026-10-22 carry no "simulator" field; they all faced
+# base.yaml's simulator, the only one there was.
+V1_SIMULATOR = "openrouter/nvidia/nemotron-3-super-120b-a12b:free"
+
 # results/free-<label>-c<catalog>.jsonl; Stage D labels end in -esc<threshold>.
 _FREE_FILE = re.compile(r"^free-(?P<label>.+?)(?:-esc(?P<t>[0-9.]+))?-c(?P<catalog>\d+)\.jsonl$")
 
@@ -112,9 +116,13 @@ def free_row(path: Path, records: Sequence[Mapping[str, Any]]) -> dict[str, Any]
     fps = {r["config_fingerprint"] for r in records}
     if len(fps) > 1:
         raise ValueError(f"{path} holds {len(fps)} identities; a cell must hold one")
+    sims = {r.get("simulator", V1_SIMULATOR) for r in records}
+    if len(sims) > 1:
+        raise ValueError(f"{path} holds episodes from {len(sims)} simulators: {sorted(sims)}")
     turns = sum(r.get("student_turns", 0) for r in records)
     row: dict[str, Any] = {
         "label": m["label"],
+        "simulator": sims.pop(),
         "catalog": int(m["catalog"]),
         "threshold": float(m["t"]) if m["t"] else None,
         "escalation_rate": (
@@ -197,41 +205,49 @@ def main(argv: list[str] | None = None) -> int:
 
     cfg = load_config(args.config)
     if args.what == "free":
-        return _free(cfg.paths.results_dir, args.markdown)
+        return _free(cfg, args.markdown)
     if args.catalog == NATIVE_CATALOG:
         tag, fp = "", cfg.teacher_fingerprint()
     else:
         tag, fp = f"-c{args.catalog}", cfg.padded_baseline_fingerprint(args.catalog)
     log = cfg.paths.results_dir / f"harvest-baseline{tag}.jsonl"
+    epoch = f"-{cfg.sim_tag}" if cfg.sim_tag else ""
     records = [r for r in read_records(log) if r["config_fingerprint"] == fp and not r.get("smoke")]
     if not records:
         raise SystemExit(f"[stats] no records for fingerprint {fp[:12]} in {log}")
     table = {
         "source": str(log),
         "teacher": cfg.teacher.model,
+        "simulator": cfg.simulator.model,
         "catalog": args.catalog,
         **success_table(records),
     }
-    out = cfg.paths.results_dir / f"baseline{tag}_summary.json"
+    out = cfg.paths.results_dir / f"baseline{epoch}{tag}_summary.json"
     out.write_text(json.dumps(table, indent=2) + "\n")
     print(json.dumps(table, indent=2))
     print(f"[stats] wrote {out}")
     return 0
 
 
-def _free(results_dir: Path, markdown: bool) -> int:
-    rows = free_tables(results_dir)
+def _free(cfg, markdown: bool) -> int:
+    """The tables for ONE simulator epoch: the config's. Students and teacher
+    are only ever compared under the same simulator."""
+    results_dir = cfg.paths.results_dir
+    rows = [r for r in free_tables(results_dir) if r["simulator"] == cfg.simulator.model]
     if not rows:
-        print(f"[stats] no free-*.jsonl results in {results_dir}; run `make pull-free` first")
+        print(
+            f"[stats] no free-*.jsonl results under simulator {cfg.simulator.model} in "
+            f"{results_dir}; run `make pull-free` first"
+        )
         return 1
+    epoch = f"-{cfg.sim_tag}" if cfg.sim_tag else ""
     teacher = {}
     for c in (16, 40, 80):
-        f = results_dir / (
-            "baseline_summary.json" if c == NATIVE_CATALOG else f"baseline-c{c}_summary.json"
-        )
+        tag = "" if c == NATIVE_CATALOG else f"-c{c}"
+        f = results_dir / f"baseline{epoch}{tag}_summary.json"
         if f.exists():
             teacher[c] = json.loads(f.read_text())
-    out = results_dir / "free_summary.json"
+    out = results_dir / f"free{epoch}_summary.json"
     out.write_text(json.dumps(rows, indent=2) + "\n")
     print(free_markdown(rows, teacher) if markdown else json.dumps(rows, indent=2))
     print(f"[stats] wrote {out}")

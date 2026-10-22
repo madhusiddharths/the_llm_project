@@ -1,0 +1,4 @@
+# E1 data-scaling ablation at 1.5B: same data pipeline and hyperparameters as the
+# v1 adapter, on a seeded task-id subset (src/subsets.py).
+extends: [../qwen15b.yaml, ablation.yaml]
+name: qwen15b-e1

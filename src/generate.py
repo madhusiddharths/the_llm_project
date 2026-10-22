@@ -97,7 +97,14 @@ def first_top(step) -> list[list[float]]:
 
 
 def run_vllm(
-    cfg, rows, out_path: Path, adapter: str | None, max_model_len: int, logprobs: bool = False
+    cfg,
+    rows,
+    out_path: Path,
+    adapter: str | None,
+    max_model_len: int,
+    logprobs: bool = False,
+    temperature: float = 0.0,
+    samples: int = 1,
 ) -> dict[str, Any]:
     import vllm
     from vllm import LLM, SamplingParams
@@ -115,22 +122,27 @@ def run_vllm(
         **({"logprobs_mode": "raw_logprobs"} if logprobs else {}),
     )
     params = SamplingParams(
-        temperature=0.0,
+        temperature=temperature,
+        n=samples,
         max_tokens=cfg.teacher.max_tokens,
         stop=[IM_END],
         seed=cfg.seed,
         logprobs=FIRST_TOP_K if logprobs else None,
     )
+    # E2 augmentation (plan X5): several sampled completions per prompt, each
+    # tagged with its sample index. Greedy runs keep the original record shape.
+    sampled = temperature > 0 or samples > 1
     lora = None
     if adapter is not None:
         from vllm.lora.request import LoRARequest
 
         lora = LoRARequest("student", 1, adapter)
 
-    def record(r, o) -> dict[str, Any]:
-        out = o.outputs[0]
+    def record(r, o, k: int = 0) -> dict[str, Any]:
+        out = o.outputs[k]
         rec = {
             "step_id": r["step_id"],
+            **({"sample": k} if sampled else {}),
             "completion": out.text,
             "prompt_tokens": len(o.prompt_token_ids),
             "completion_tokens": len(out.token_ids),
@@ -145,7 +157,10 @@ def run_vllm(
     for start in range(0, len(rows), CHUNK):
         chunk = rows[start : start + CHUNK]
         outs = llm.generate([r["prompt"] for r in chunk], params, lora_request=lora)
-        append(out_path, (record(r, o) for r, o in zip(chunk, outs, strict=True)))
+        append(
+            out_path,
+            (record(r, o, k) for r, o in zip(chunk, outs, strict=True) for k in range(samples)),
+        )
         print(f"[generate] {start + len(chunk)}/{len(rows)}")
     return {"vllm": vllm.__version__}
 
@@ -279,9 +294,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--logprobs", action="store_true", help="record token ids and log-probs (V1-18)"
     )
+    parser.add_argument(
+        "--temperature", type=float, default=0.0, help="E2 sampling (vllm only; default greedy)"
+    )
+    parser.add_argument("--samples", type=int, default=1, help="completions per prompt (vllm only)")
     args = parser.parse_args(argv)
     if args.out is None:
         parser.error("--out is required")
+    if (args.temperature > 0 or args.samples > 1) and args.backend != "vllm":
+        parser.error("--temperature/--samples are wired for --backend vllm only")
 
     cfg = resolve(args)
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -294,16 +315,32 @@ def main(argv: list[str] | None = None) -> int:
         if args.backend == "mlx":
             versions = run_mlx(cfg, rows, args.out, args.adapter, args.max_model_len, args.logprobs)
         else:
-            runner = run_vllm if args.backend == "vllm" else run_hf
             adapter = _resolve_adapter(args.adapter)
-            versions = runner(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
+            if args.backend == "vllm":
+                versions = run_vllm(
+                    cfg,
+                    rows,
+                    args.out,
+                    adapter,
+                    args.max_model_len,
+                    args.logprobs,
+                    args.temperature,
+                    args.samples,
+                )
+            else:
+                versions = run_hf(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
 
     meta = {
         "base_model": cfg.model.base_model,
         "adapter": args.adapter,
         "backend": args.backend,
         "versions": versions,
-        "sampling": {"temperature": 0.0, "max_tokens": cfg.teacher.max_tokens, "seed": cfg.seed},
+        "sampling": {
+            "temperature": args.temperature,
+            "samples": args.samples,
+            "max_tokens": cfg.teacher.max_tokens,
+            "seed": cfg.seed,
+        },
         "max_model_len": args.max_model_len,
         "logprobs": args.logprobs,
         "prompts_file": args.prompts.name,

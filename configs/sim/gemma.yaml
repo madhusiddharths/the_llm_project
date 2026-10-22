@@ -1,0 +1,34 @@
+# Simulator epoch 2 (DECIDED 2026-10-22, Madhu). An overlay, not a full config:
+# configs/gemma/<model>.yaml combines it with a model config via list `extends`.
+#
+# Why: base.yaml's simulator and judge, nvidia/nemotron-3-super-120b-a12b:free,
+# lost its only OpenRouter provider on 2026-10-20 (Nvidia: 404 "Function ...
+# Not found", status -5, 0% uptime for 2+ days). Every free-running episode
+# needs the simulator, so the quota lane stopped. The same weights are paid
+# everywhere else, and Nvidia's own API is a 5,000-credit lifetime trial that
+# covers Stage B's remainder but not Stages D and I (~20k requests).
+#
+# Why Gemma 4 31B: free on OpenRouter, served by Google AI Studio (not Nvidia,
+# so not the same single point of failure), 99.8% uptime on 2026-10-22, and it
+# honours temperature 0 and a seed. Claude via `claude -p` was considered and
+# rejected: no temperature or seed control, so the simulator could not be frozen.
+#
+# What it costs: a new simulator is a new user. Every cell run under it is
+# compared only with a teacher baseline run under it (eval_free refuses a student
+# cell until one exists). Stage A and the finished Stage B cells stay the
+# epoch-1 table; nothing is re-labelled or mixed. teacher_fingerprint() moves
+# with the simulator and judge, so the epoch-2 logs are separate by construction.
+#
+# The judge may not be the teacher (assert_judge_not_teacher): it is Gemma too,
+# like the old judge was the simulator's model.
+sim_tag: gemma
+
+simulator:
+  model: openrouter/google/gemma-4-31b-it:free
+  temperature: 0.0
+  seed: 20260909
+  max_turns: 15
+
+judge:
+  model: openrouter/google/gemma-4-31b-it:free
+  temperature: 0.0

@@ -33,6 +33,10 @@ CORE = [
     "src.load_test",
     "src.mlx_engine",
     "src.engine_check",
+    "src.registry",
+    "src.subsets",
+    "src.make_pairs",
+    "src.train_dpo",
 ]
 # tau2 is in here for src.judge: it patches tau2 internals, and the patch is only
 # safe to import from a test or a CI run because that import stays inside install().
@@ -48,6 +52,7 @@ HEAVY = {
     "tau2",
     "mlx",
     "mlx_lm",
+    "trl",
 }
 
 

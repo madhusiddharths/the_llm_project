@@ -13,7 +13,7 @@ the run aborts. See tests/test_invariants.py.
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
 
 from src.config import ExperimentConfig, JudgeConfig, SimulatorConfig
@@ -217,6 +217,60 @@ def assert_no_catalog_in_train_config(cfg: ExperimentConfig) -> None:
             f"TrainConfig gained catalog field(s) {offending}. Plan §5: never train "
             "per-catalog — train one adapter and evaluate it against all catalogs."
         )
+
+
+# --- v2/v3 (plan X10) ----------------------------------------------------------
+
+
+def assert_pairs_train_only(task_ids: Iterable[str], train_ids: Iterable[str]) -> None:
+    """Every DPO pair comes from a train-split task (plan X5, E2).
+
+    A pair built on an eval task would teach the student the eval answer and
+    then score it on that answer: the forced-eval grid would measure recall.
+    """
+    stray = sorted(set(task_ids) - set(train_ids))
+    if stray:
+        raise InvariantViolation(
+            f"{len(stray)} pair task ids are outside the train split (e.g. {stray[:5]}). "
+            "Pairs may only be built from train-split states."
+        )
+
+
+def assert_states_train_only(task_ids: Iterable[str], train_ids: Iterable[str]) -> None:
+    """Every GRPO state comes from a train-split task (plan X7), for the same reason."""
+    stray = sorted(set(task_ids) - set(train_ids))
+    if stray:
+        raise InvariantViolation(
+            f"{len(stray)} GRPO state task ids are outside the train split (e.g. {stray[:5]})."
+        )
+
+
+def assert_parent_is_sft(parent_sha256: str, registry: Mapping[str, Mapping[str, str]]) -> str:
+    """DPO and GRPO branch from a registered SFT checkpoint, never from each other.
+
+    Plan X4: branch, don't stack. `registry` maps adapter repo -> {"sha256": ...}
+    (configs/sft_registry.yaml); the parent is identified by its weights' hash, so
+    re-pushing a different adapter under the same repo name cannot pass. Returns
+    the repo the hash belongs to.
+    """
+    for repo, entry in registry.items():
+        if entry.get("sha256") == parent_sha256:
+            return repo
+    raise InvariantViolation(
+        f"parent adapter sha256 {short(parent_sha256)} is not a registered SFT checkpoint "
+        f"({len(registry)} registered). DPO/GRPO must branch from SFT (plan X4); add the "
+        "adapter with `python src/registry.py add <repo>` if it is a reviewed SFT run."
+    )
+
+
+def assert_reward_deterministic(reward_fn, samples: Sequence[object]) -> None:
+    """The same input scores the same twice (plan X10). A noisy reward is a
+    reward the policy can exploit by resampling."""
+    first = [reward_fn(s) for s in samples]
+    second = [reward_fn(s) for s in samples]
+    if first != second:
+        diffs = [i for i, (a, b) in enumerate(zip(first, second, strict=True)) if a != b]
+        raise InvariantViolation(f"reward is not deterministic on samples {diffs[:5]}")
 
 
 def assert_env_keys(required: Sequence[str]) -> None:

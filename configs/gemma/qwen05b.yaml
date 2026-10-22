@@ -1,0 +1,4 @@
+# qwen05b under simulator epoch 2 (configs/sim/gemma.yaml). Results land in files
+# named qwen05b-gemma, never in the epoch-1 ones.
+extends: [../qwen05b.yaml, ../sim/gemma.yaml]
+name: qwen05b-gemma

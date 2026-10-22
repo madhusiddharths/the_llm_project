@@ -35,6 +35,11 @@ SMOKE_OVERRIDES: dict[str, Any] = {
     "eval": {"n_tasks": 2, "seeds": [0], "catalog_sizes": [16]},
     "escalation": {"thresholds": [0.7]},
 }
+# Smoke overrides for optional sections, applied only when the config sets the
+# section: merging them into a config without it would create a half-filled one.
+SMOKE_OVERRIDES_IF_SET: dict[str, Any] = {
+    "dpo": {"epochs": 1, "max_steps": 1, "batch_size": 1, "grad_accum": 1},
+}
 
 
 class _Frozen(BaseModel):
@@ -161,6 +166,73 @@ class EscalationConfig(_Frozen):
     thresholds: list[float] = Field(default_factory=list)
 
 
+# --- v2/v3 extension sections (plan X10) --------------------------------------
+# Every one is optional and absent from configs/base.yaml. fingerprint() drops
+# the ones left unset, so no v1 cell identity moves (tests/test_config.py pins
+# the v1 fingerprints). They are set only by the configs under configs/v2/.
+
+
+class DPOConfig(_Frozen):
+    """Stage E3 (plan X5). Starting points to tune, not settled values."""
+
+    beta: float
+    learning_rate: float
+    epochs: int
+    batch_size: int  # pairs per forward group; kept at 1 (one sequence per pass)
+    grad_accum: int  # pairs per optimizer step = batch_size * grad_accum
+    # Which completions the rejected side came from (make_pairs.py manifest).
+    pair_source: str
+    sampling_temperature: float
+    # "continue_sft_adapter": the policy is the SFT LoRA itself, trained further;
+    # the reference is that adapter frozen at the start (log-probs precomputed).
+    # The result is again one LoRA over the base model, so every eval path takes
+    # it unchanged. See src/train_dpo.py.
+    init: Literal["continue_sft_adapter"]
+    max_steps: int | None = None
+
+
+class GRPOConfig(_Frozen):
+    """Stage G/H (plan X7, X8). Schema only until train_grpo.py lands."""
+
+    level: Literal["step", "episode"]
+    group_size: int
+    reward_weights: dict[str, float]
+    kl_coef: float
+    learning_rate: float
+    max_steps: int
+
+
+class ServingConfig(_Frozen):
+    """Stage F (plan X6). Schema only until serve_bench.py lands."""
+
+    vllm_version: str
+    concurrency_levels: list[int]
+    prefix_caching: bool = True
+    guided_decoding: bool = False
+    quantization: Literal["none", "awq", "gptq"] = "none"
+
+
+class AblationConfig(_Frozen):
+    """Stage E1 data-scaling ablation (plan X5, resolved 2026-09-22)."""
+
+    fractions: list[float]
+    # The teacher tasks with at least one successful episode (46), subset by
+    # task id. Public data, if any were ever mixed in, stays at 100%.
+    denominator: Literal["teacher_tasks"]
+    subset_seed: int
+
+    @field_validator("fractions")
+    @classmethod
+    def _fractions_in_range(cls, v: list[float]) -> list[float]:
+        if not v or any(not 0 < f <= 1 for f in v):
+            raise ValueError(f"ablation.fractions must lie in (0, 1]: {v}")
+        return v
+
+
+# Dropped from fingerprint() while None, so adding them moved no v1 identity.
+EXTENSION_FIELDS = frozenset({"dpo", "grpo", "serving", "ablation", "sim_tag"})
+
+
 class PathsConfig(_Frozen):
     results_dir: Path = Path("results")
     trajectories_dir: Path = Path("data/trajectories")
@@ -193,15 +265,35 @@ class ExperimentConfig(_Frozen):
     escalation: EscalationConfig
     paths: PathsConfig = Field(default_factory=PathsConfig)
 
+    # A short label for a simulator/judge other than base.yaml's, set by
+    # configs/sim/<tag>.yaml. It names the teacher summary files so the two
+    # simulator epochs never overwrite each other. None = the v1 simulator.
+    sim_tag: str | None = None
+    dpo: DPOConfig | None = None
+    grpo: GRPOConfig | None = None
+    serving: ServingConfig | None = None
+    ablation: AblationConfig | None = None
+
     def fingerprint(self) -> str:
         """Identity of this experiment cell, stamped on every result record.
 
         Paths are excluded: where results happen to be written is not part of
         what was run. `smoke` is included, so scaffold and smoke records can
-        never be mistaken for a real run's numbers.
+        never be mistaken for a real run's numbers. Extension sections are
+        included only when set (plan X10), so the v1 identities did not move
+        when the schema grew.
         """
-        payload = self.model_dump(mode="json", exclude={"paths"})
+        unset = {f for f in EXTENSION_FIELDS if getattr(self, f) is None}
+        payload = self.model_dump(mode="json", exclude={"paths", *unset})
         return hash_obj(payload)
+
+    def method(self) -> str:
+        """Which post-training branch this config describes (plan X4, X10)."""
+        if self.dpo is not None:
+            return "dpo"
+        if self.grpo is not None:
+            return "grpo"
+        return "sft"
 
     def short_fingerprint(self) -> str:
         return short(self.fingerprint())
@@ -267,7 +359,12 @@ def _deep_merge(base: dict[str, Any], overlay: dict[str, Any]) -> dict[str, Any]
 
 
 def _load_raw(path: Path, _seen: frozenset[Path] = frozenset()) -> dict[str, Any]:
-    """Read YAML, resolving an optional `extends:` chain relative to the file."""
+    """Read YAML, resolving an optional `extends:` chain relative to the file.
+
+    `extends` is one path or a list; a list merges left to right, then this
+    file on top. A list lets a model config and a shared overlay (a simulator
+    epoch, a v2 section) combine without copying the overlay into every file.
+    """
     path = path.resolve()
     if path in _seen:
         chain = " -> ".join(str(p) for p in (*_seen, path))
@@ -280,8 +377,11 @@ def _load_raw(path: Path, _seen: frozenset[Path] = frozenset()) -> dict[str, Any
     parent_ref = raw.pop("extends", None)
     if parent_ref is None:
         return raw
-    parent = _load_raw(path.parent / str(parent_ref), _seen | {path})
-    return _deep_merge(parent, raw)
+    refs = parent_ref if isinstance(parent_ref, list) else [parent_ref]
+    merged: dict[str, Any] = {}
+    for ref in refs:
+        merged = _deep_merge(merged, _load_raw(path.parent / str(ref), _seen | {path}))
+    return _deep_merge(merged, raw)
 
 
 def load_config(
@@ -297,6 +397,7 @@ def load_config(
     raw = _load_raw(Path(path))
     if smoke:
         raw = _deep_merge(raw, SMOKE_OVERRIDES)
+        raw = _deep_merge(raw, {k: v for k, v in SMOKE_OVERRIDES_IF_SET.items() if k in raw})
         raw["smoke"] = True
     if seed is not None:
         raw["seed"] = seed

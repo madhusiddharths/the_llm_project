@@ -1,0 +1,13 @@
+# Stage E3 overlay (plan X5). Not a full config: configs/v2/<model>-dpo.yaml
+# combines it with a model config. Starting points to tune, not settled values.
+dpo:
+  beta: 0.1
+  # LoRA DPO wants a higher rate than full-weight DPO's ~5e-7; the plan's range
+  # is 5e-6 to 5e-5. Start in the middle; tune only after the kill gate's pair check.
+  learning_rate: 2.0e-5
+  epochs: 2
+  batch_size: 1                   # one sequence per pass (12k-token prompts on a T4)
+  grad_accum: 8                   # 8 pairs per optimizer step
+  pair_source: forced_train_c16_greedy
+  sampling_temperature: 0.0
+  init: continue_sft_adapter      # see src/train_dpo.py
