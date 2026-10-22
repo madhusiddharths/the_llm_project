@@ -52,3 +52,43 @@ def test_every_episode_of_a_chosen_task_is_kept(tmp_path):
         assert written[key] == manifest[key]
     assert written["file_sha256"] == hash_file(tmp_path / "train.jsonl")
     assert written["ablation"]["fraction"] == 0.25
+
+
+def test_the_cli_parses_and_writes_a_subset(tmp_path):
+    """Run main() end to end: the 2026-10-22 Kaggle failure was an argparse
+    clash (--out defined twice) that the function-level tests never reached."""
+    from src.subsets import main
+
+    records = [
+        {"task_id": t, "rep": 0, "n_decisions": 2, "chars": 5, "segments": [["x", True]]}
+        for t in TASKS
+    ]
+    src_dir = tmp_path / "sft"
+    src_dir.mkdir()
+    (src_dir / "train.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
+    (src_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "file": "train.jsonl",
+                "file_sha256": hash_file(src_dir / "train.jsonl"),
+                "teacher_fingerprint": "tf",
+            }
+        )
+    )
+    out = tmp_path / "f25"
+    assert (
+        main(
+            [
+                "--config",
+                "configs/v2/qwen15b-e1.yaml",
+                "--data",
+                str(src_dir),
+                "--fraction",
+                "0.25",
+                "--out",
+                str(out),
+            ]
+        )
+        == 0
+    )
+    assert json.loads((out / "manifest.json").read_text())["n_tasks"] == 12

@@ -92,8 +92,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser("E1: seeded task-id subset of an SFT set")
     parser.add_argument("--data", type=Path, required=True, help="SFT dir (train.jsonl + manifest)")
     parser.add_argument("--fraction", type=float, required=True)
-    parser.add_argument("--out", dest="out_dir", type=Path, required=True)
-    args = parser.parse_args(argv)
+    args = parser.parse_args(argv)  # --out (the subset directory) comes from build_parser
+    if args.out is None:
+        parser.error("--out is required: the directory to write the subset to")
 
     cfg = resolve(args)
     print(f"[subsets] {', '.join(check_all(cfg))}")
@@ -113,11 +114,11 @@ def main(argv: list[str] | None = None) -> int:
         manifest,
         fraction=args.fraction,
         seed=cfg.ablation.subset_seed,
-        out_dir=args.out_dir,
+        out_dir=args.out,
     )
     print(
         f"[subsets] {args.fraction:.0%}: {sub['n_tasks']}/{sub['ablation']['parent_n_tasks']} tasks, "
-        f"{sub['n_episodes']} episodes, {sub['n_decisions']} decisions -> {args.out_dir}"
+        f"{sub['n_episodes']} episodes, {sub['n_decisions']} decisions -> {args.out}"
     )
     return 0
 
