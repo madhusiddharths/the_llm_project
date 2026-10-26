@@ -9,6 +9,7 @@ from src.make_pairs import (
     as_target,
     build_pairs,
     execution_equivalent,
+    hit_token_limit,
     is_teacher_reasoning,
     judge,
     ordering_only,
@@ -184,3 +185,24 @@ def test_build_pairs_drops_ordering_only_and_teacher_reasoning():
     assert sorted(p["step_id"] for p in pairs) == ["7:0:4", "7:0:8"]
     sheet = review_sheet(pairs, states, "test", n=30)
     assert sheet.count("- [ ] ✅") == 2 and "**customer:** cancel W1" in sheet
+
+
+def test_a_reply_cut_at_the_token_limit_is_recognised_from_either_record():
+    raw = "{'choices': [{'finish_reason': 'length', 'index': 0}]}"
+    assert hit_token_limit({"raw_data": raw}, 1024)
+    assert hit_token_limit({"usage": {"completion_tokens": 1024}}, 1024)
+    done = "{'choices': [{'finish_reason': 'stop', 'index': 0}]}"
+    assert not hit_token_limit({"raw_data": done, "usage": {"completion_tokens": 700}}, 1024)
+    assert not hit_token_limit({}, 1024)
+
+
+def test_build_pairs_drops_a_pair_whose_teacher_reply_was_cut_off():
+    reply = Action(kind="reply", text="Your order W1 is pending and contains")
+    cut = State("8:0:2", "8", 0, 2, "P", CONTEXT, reply, cut_off=True)
+    pairs, stats = build_pairs(
+        [cut],
+        [{"step_id": "8:0:2", "completion": _completion("get_order", order_id="W1")}],
+        CATALOG,
+        fake_run,
+    )
+    assert pairs == [] and stats["outcomes"] == {"teacher_cut_off": 1}

@@ -41,6 +41,11 @@ Two filters drop pairs that would teach the wrong lesson (E2-4 review,
   - teacher_reasoning: the teacher's "reply" is its own reasoning sent as a
     message, which talks about the customer as "the user". DPO would teach the
     student to think out loud at the customer.
+  - teacher_cut_off: the teacher's reply hit the harvest's token limit and
+    stops mid-sentence (finish_reason "length"). Nemotron 3 Ultra's hidden
+    reasoning counts toward teacher.max_tokens (1,024), so long replies ran out:
+    154 of 1,727 teacher turns in the training harvest, all text replies. DPO
+    would reward the cut ending along with the decision.
 
 The executor is passed in (plan X7's constraint): tests use a fake DB, real runs
 use Tau2Runner, which imports tau2 lazily. Nothing here imports tau2 at module
@@ -200,6 +205,16 @@ class State:
     prompt: str
     context: tuple[Mapping[str, Any], ...]
     reference: Action
+    cut_off: bool = False  # the teacher's message hit the token limit
+
+
+def hit_token_limit(message: Mapping[str, Any], max_tokens: int) -> bool:
+    """True if the provider stopped this message at the token limit. tau2 keeps
+    the response as `raw_data` (a repr of the provider's dict) and the token
+    count as `usage`; either one is enough."""
+    if "'finish_reason': 'length'" in str(message.get("raw_data") or ""):
+        return True
+    return (message.get("usage") or {}).get("completion_tokens", 0) >= max_tokens
 
 
 def build_pairs(
@@ -226,7 +241,9 @@ def build_pairs(
         verdict = judge(state.reference, rec["completion"], names, state.context, run)
         predicted = parse_completion(rec["completion"]).action
         outcome = verdict.outcome
-        if outcome == "pair" and is_teacher_reasoning(state.reference):
+        if outcome == "pair" and state.cut_off:
+            outcome = "teacher_cut_off"
+        elif outcome == "pair" and is_teacher_reasoning(state.reference):
             outcome = "teacher_reasoning"
         elif outcome == "pair" and ordering_only(state.reference, predicted, after[state.step_id]):
             outcome = "ordering_only"
@@ -414,6 +431,7 @@ def load_states(cfg, harvest_cfg) -> tuple[list[State], list[str], list[str]]:
             prompt=serialize_state(system=system, tools=tools, messages=st.context),
             context=st.context,
             reference=st.action,
+            cut_off=hit_token_limit(e.messages[st.index], harvest_cfg.teacher.max_tokens),
         )
         for e in episodes
         for st in decision_steps(e.messages)
@@ -499,10 +517,14 @@ def main(argv: list[str] | None = None) -> int:
         f"[make_pairs] {stats['n_pairs']} pairs from {stats['n_completions']} completions -> {pairs_path}"
     )
     print(f"[make_pairs]   outcomes: {stats['outcomes']}")
-    dropped = {k: stats["outcomes"].get(k, 0) for k in ("ordering_only", "teacher_reasoning")}
+    dropped = {
+        k: stats["outcomes"].get(k, 0)
+        for k in ("ordering_only", "teacher_reasoning", "teacher_cut_off")
+    }
     print(
         f"[make_pairs]   dropped: {dropped['ordering_only']} ordering-only lookups, "
-        f"{dropped['teacher_reasoning']} teacher-reasoning replies"
+        f"{dropped['teacher_reasoning']} teacher-reasoning replies, "
+        f"{dropped['teacher_cut_off']} teacher replies cut at the token limit"
     )
     print(f"[make_pairs]   per bucket: {stats['pairs_per_bucket']}")
     share = stats["equivalent_share_of_call_disagreements"]

@@ -1,7 +1,7 @@
 {
   "file": "pairs.jsonl",
-  "file_sha256": "6236c3b41a3ba2aa9198a0f0aecf86a23e99e1af1ffc52deed419ce246ca334e",
-  "created": "2026-10-23T04:40:03Z",
+  "file_sha256": "3332f2251b9c120d86f41792f424255259f53b8cc1eb2e1fdd9c5bf609d4b52b",
+  "created": "2026-10-26T15:03:40Z",
   "smoke": false,
   "teacher_fingerprint": "4138d3faa22ad0840cc0ea6f338892bddec9f48ecf707e1ea2d64bd96615fc6a",
   "prompt_template_hash": "138c4b02d9694eef9e5a19723c413b3a698d8feb8e6de5816671bb58d2585a30",
@@ -79,17 +79,19 @@
   "n_completions": 1099,
   "outcomes": {
     "agree": 768,
-    "pair": 328,
+    "ordering_only": 24,
+    "teacher_cut_off": 54,
+    "pair": 250,
     "equivalent": 3
   },
-  "n_pairs": 328,
+  "n_pairs": 250,
   "pairs_per_bucket": {
-    "call_instead_of_reply": 176,
+    "call_instead_of_reply": 122,
     "hallucinated_tool": 3,
     "premature_termination": 46,
-    "right_tool_wrong_args": 21,
-    "wrong_tool_neighbor": 70,
-    "wrong_tool_unrelated": 12
+    "right_tool_wrong_args": 19,
+    "wrong_tool_neighbor": 53,
+    "wrong_tool_unrelated": 7
   },
   "call_disagreements": 109,
   "equivalent_share_of_call_disagreements": 0.0275
