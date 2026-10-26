@@ -1,0 +1,4 @@
+# qwen15b under simulator epoch 2 (configs/sim/nemotron35.yaml). Results land in
+# files named qwen15b-nemotron35, never in the epoch-1 ones.
+extends: [../qwen15b.yaml, ../sim/nemotron35.yaml]
+name: qwen15b-nemotron35

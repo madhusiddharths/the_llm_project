@@ -4,7 +4,17 @@ from __future__ import annotations
 
 import json
 
-from src.make_pairs import State, as_target, build_pairs, execution_equivalent, judge, prior_calls
+from src.make_pairs import (
+    State,
+    as_target,
+    build_pairs,
+    execution_equivalent,
+    is_teacher_reasoning,
+    judge,
+    ordering_only,
+    prior_calls,
+    review_sheet,
+)
 from src.prompts import IM_END
 from src.trajectories import Action, ToolCall
 
@@ -124,3 +134,53 @@ def test_build_pairs_counts_dedupes_and_renders_both_sides():
         and p["rejected"] == as_target(wrong)
     )
     assert '"order_id": "W1"' in p["chosen"] and '"W2"' in p["rejected"]
+
+
+def test_a_lookup_the_teacher_makes_later_is_ordering_not_a_mistake():
+    ref = _call("get_order", order_id="W1")
+    later = (ToolCall(name="find_user", arguments={"email": "a@b.c"}),)
+    assert ordering_only(ref, _call("find_user", email="A@b.c "), later)  # §3-normalized
+    assert not ordering_only(ref, _call("find_user", email="x@y.z"), later)  # never made
+    assert not ordering_only(ref, _call("get_order", order_id="W2"), later)
+
+
+def test_a_write_is_never_ordering_only_even_if_the_teacher_makes_it_later():
+    """Order matters for writes: modifying items first blocks a later address change."""
+    ref = _call("get_order", order_id="W1")
+    later = (ToolCall(name="cancel_order", arguments={"order_id": "W1"}),)
+    assert not ordering_only(ref, _call("cancel_order", order_id="W1"), later)
+
+
+def test_ordering_only_needs_the_teacher_to_have_called_here():
+    reply = Action(kind="reply", text="Your order is pending.")
+    later = (ToolCall(name="get_order", arguments={"order_id": "W1"}),)
+    assert not ordering_only(reply, _call("get_order", order_id="W1"), later)
+
+
+def test_teacher_reasoning_is_the_third_person_user():
+    assert is_teacher_reasoning(Action(kind="reply", text="The user wants to: 1. Redirect"))
+    assert is_teacher_reasoning(Action(kind="reply", text="Let me analyze the user's requests:"))
+    assert not is_teacher_reasoning(Action(kind="reply", text="I found the user ID jo_1."))
+    assert not is_teacher_reasoning(Action(kind="reply", text="Could you give me your email?"))
+
+
+def test_build_pairs_drops_ordering_only_and_teacher_reasoning():
+    lookup, cancel = _call("get_order", order_id="W2"), _call("cancel_order", order_id="W1")
+    reasoning = Action(kind="reply", text="The user wants to cancel W1.")
+    states = [
+        State("7:0:2", "7", 0, 2, "P2", CONTEXT, _call("get_order", order_id="W1")),
+        State("7:0:4", "7", 0, 4, "P4", CONTEXT, lookup),
+        State("7:0:6", "7", 0, 6, "P6", CONTEXT, reasoning),
+        State("7:0:8", "7", 0, 8, "P8", CONTEXT, cancel),
+    ]
+    completions = [
+        {"step_id": "7:0:2", "completion": _completion("get_order", order_id="W2")},  # later
+        {"step_id": "7:0:4", "completion": _completion("cancel_order", order_id="W1")},  # write
+        {"step_id": "7:0:6", "completion": _completion("get_order", order_id="W1")},
+        {"step_id": "7:0:8", "completion": _completion("cancel_order", order_id="W2")},
+    ]
+    pairs, stats = build_pairs(states, completions, CATALOG, fake_run)
+    assert stats["outcomes"] == {"ordering_only": 1, "pair": 2, "teacher_reasoning": 1}
+    assert sorted(p["step_id"] for p in pairs) == ["7:0:4", "7:0:8"]
+    sheet = review_sheet(pairs, states, "test", n=30)
+    assert sheet.count("- [ ] ✅") == 2 and "**customer:** cancel W1" in sheet

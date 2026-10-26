@@ -229,10 +229,11 @@ def test_dpo_smoke_overrides_apply_only_where_dpo_is_set():
     assert load_config("configs/qwen15b.yaml", smoke=True).dpo is None
 
 
-def test_the_gemma_epoch_changes_the_harness_and_nothing_else():
+@pytest.mark.parametrize("tag", ["gemma", "nemotron35"])
+def test_a_simulator_epoch_changes_the_harness_and_nothing_else(tag):
     v1 = load_config("configs/qwen3b.yaml")
-    g = load_config("configs/gemma/qwen3b.yaml")
-    assert g.sim_tag == "gemma" and g.name == "qwen3b-gemma"
+    g = load_config(f"configs/{tag}/qwen3b.yaml")
+    assert g.sim_tag == tag and g.name == f"qwen3b-{tag}"
     assert g.simulator.model != v1.simulator.model and g.judge.model != v1.judge.model
     assert g.simulator.temperature == 0.0 and g.simulator.seed == v1.simulator.seed
     assert g.teacher == v1.teacher and g.model == v1.model and g.train == v1.train

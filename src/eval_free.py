@@ -192,7 +192,7 @@ class Escalation:
 
 def escalated_episode_budget(cfg) -> int:
     """Worst-case API requests for one Stage D episode, used in place of
-    harvest.MAX_REQUESTS_PER_EPISODE (22, measured on teacher-only episodes).
+    harvest.MAX_REQUESTS_PER_EPISODE (27, measured on teacher-only episodes).
     Escalated students loop to max_steps more often than the teacher did, so this
     is the bound rather than a measurement: every one of max_steps messages an
     API call (simulator or teacher; tool results are local, so this over-counts),

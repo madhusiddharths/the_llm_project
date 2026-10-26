@@ -1,0 +1,77 @@
+{
+  "completions": "results/completions-qwen3b-sft-mlx-c80-logprobs.jsonl",
+  "results": "results/forced-qwen3b-sft-mlx-lp-c80.jsonl",
+  "smoke": false,
+  "name_only": {
+    "n_steps": 1416,
+    "accuracy_before": 0.5911,
+    "auroc": 0.7389631454931634,
+    "unmeasured_steps": 3,
+    "points": [
+      {
+        "threshold": 0.5,
+        "escalation_rate": 0.0304,
+        "accuracy_after": 0.6215,
+        "mistakes_caught": 0.0743,
+        "wasted_escalations": 0.0
+      },
+      {
+        "threshold": 0.7,
+        "escalation_rate": 0.221,
+        "accuracy_after": 0.7606,
+        "mistakes_caught": 0.4145,
+        "wasted_escalations": 0.2332
+      },
+      {
+        "threshold": 0.85,
+        "escalation_rate": 0.3376,
+        "accuracy_after": 0.8242,
+        "mistakes_caught": 0.5699,
+        "wasted_escalations": 0.3096
+      },
+      {
+        "threshold": 0.95,
+        "escalation_rate": 0.4562,
+        "accuracy_after": 0.8715,
+        "mistakes_caught": 0.6857,
+        "wasted_escalations": 0.3854
+      }
+    ]
+  },
+  "step": {
+    "n_steps": 1416,
+    "accuracy_before": 0.5911,
+    "auroc": 0.8108385603345281,
+    "unmeasured_steps": 3,
+    "points": [
+      {
+        "threshold": 0.5,
+        "escalation_rate": 0.1229,
+        "accuracy_after": 0.6949,
+        "mistakes_caught": 0.2539,
+        "wasted_escalations": 0.1552
+      },
+      {
+        "threshold": 0.7,
+        "escalation_rate": 0.4541,
+        "accuracy_after": 0.8884,
+        "mistakes_caught": 0.7271,
+        "wasted_escalations": 0.3453
+      },
+      {
+        "threshold": 0.85,
+        "escalation_rate": 0.714,
+        "accuracy_after": 0.9682,
+        "mistakes_caught": 0.9223,
+        "wasted_escalations": 0.4718
+      },
+      {
+        "threshold": 0.95,
+        "escalation_rate": 0.9124,
+        "accuracy_after": 0.9936,
+        "mistakes_caught": 0.9845,
+        "wasted_escalations": 0.5588
+      }
+    ]
+  }
+}

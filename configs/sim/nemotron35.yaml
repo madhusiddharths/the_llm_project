@@ -1,0 +1,34 @@
+# Simulator epoch 2 (2026-10-22): the simulator and judge for every run from
+# here on. An overlay; configs/nemotron35/<model>.yaml combines it with a model.
+#
+# How we got here, all on 2026-10-22 with the same OpenRouter key (a paid-credit
+# key; the teacher answers normally on it):
+#   - nvidia/nemotron-3-super-120b-a12b:free (epoch 1): its only provider has
+#     returned 404 "Function not found" since 2026-10-20.
+#   - google/gemma-4-31b-it:free (and 26b): 429 "rate-limited upstream" on every
+#     call; the free pool is shared by all OpenRouter users (configs/sim/gemma.yaml).
+#   - thinkingmachines/inkling(-small):free: 403 "only available on agentic
+#     harnesses", an OpenRouter access gate, not an outage.
+#   - dots-3-note-preview:free works but expires 2026-12-31 and has no seed.
+#
+# Nemotron 3.5 Super is the direct successor of the epoch-1 model: same family,
+# same size (120B total / 12B active MoE), temperature and seed honoured. A probe
+# as a customer gave a clean in-character reply (~530 reasoning chars, then the
+# message). Its weakness is the old one: Nvidia is the only provider (86% 1-day
+# uptime on 2026-10-22), so outages stop the run; the empty-batch breaker and
+# next-day retry already handle that.
+#
+# Epoch rules are unchanged: a new simulator is a new user; students are compared
+# only with a teacher baseline run under it (eval_free enforces it). No episode
+# under any epoch-2 simulator had been logged when this one was chosen.
+sim_tag: nemotron35
+
+simulator:
+  model: openrouter/nvidia/nemotron-3.5-super-vl:free
+  temperature: 0.0
+  seed: 20260909
+  max_turns: 15
+
+judge:
+  model: openrouter/nvidia/nemotron-3.5-super-vl:free
+  temperature: 0.0

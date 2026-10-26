@@ -31,6 +31,17 @@ What counts as a disagreement (review these, they decide what DPO pushes away):
     pairs, each tagged with its failure-taxonomy bucket (src/taxonomy.py).
   - The same (state, rejected text) twice, which sampling produces, is one pair.
 
+Two filters drop pairs that would teach the wrong lesson (E2-4 review,
+2026-10-26: 23/30 passed before them, every failure one of these two):
+  - ordering_only: the teacher called, and the student made a read-only lookup
+    (get_*/find_*/list_*) that the teacher itself makes later in the same
+    episode. A different order of the same lookups, not a mistake; DPO would
+    push a correct action away. Writes are never dropped: their order matters
+    (changing items first blocks a later address change).
+  - teacher_reasoning: the teacher's "reply" is its own reasoning sent as a
+    message, which talks about the customer as "the user". DPO would teach the
+    student to think out loud at the customer.
+
 The executor is passed in (plan X7's constraint): tests use a fake DB, real runs
 use Tau2Runner, which imports tau2 lazily. Nothing here imports tau2 at module
 scope, so the pure half stays testable without it.
@@ -45,6 +56,8 @@ from __future__ import annotations
 
 import copy
 import json
+import random
+import re
 import sys
 from collections import Counter
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -60,13 +73,24 @@ from src.cli import build_parser, resolve
 from src.config import load_config
 from src.hashing import hash_file, sha256_str, short
 from src.invariants import InvariantViolation, assert_pairs_train_only, check_all
-from src.metrics import score_step
+from src.metrics import normalize, score_step
 from src.prompts import IM_END, parse_completion, render_action, template_hash
 from src.runlog import read_records
 from src.taxonomy import classify
 from src.trajectories import Action, ToolCall
 
 NATIVE_CATALOG = 16
+
+# The retail tools that only read: every get_/find_/list_ tool. The writes are
+# cancel_/modify_/return_/exchange_/transfer_ (tau2 retail, v1 catalog 16).
+READ_ONLY_PREFIXES = ("get_", "find_", "list_")
+
+# A reply that talks about the customer in the third person is the teacher's
+# reasoning, not a message to them ("The user wants to: ...", "Let me analyze
+# the user's requests"). Checked on every reply-side pair of the 2026-10-24 pair
+# sets: 7 / 14 / 10 hits (0.5B / 1.5B / 3B), every one reasoning. "the user ID"
+# and "the user account" are legitimate in a message and excluded.
+TEACHER_REASONING = re.compile(r"\bthe user(?:['\u2019]s)?\b(?!\s*(?:id|account)\b)", re.I)
 
 # (prefix calls already made, calls to run) -> (each call's output, DB hash after)
 Runner = Callable[[Sequence[ToolCall], Sequence[ToolCall]], tuple[list[str], str]]
@@ -125,6 +149,43 @@ def judge(
     return Verdict("pair", bucket)
 
 
+def is_teacher_reasoning(action: Action) -> bool:
+    """A teacher 'reply' that is its reasoning, not a message. See the module docstring."""
+    return action.kind == "reply" and bool(TEACHER_REASONING.search(action.text or ""))
+
+
+def _call_key(c: ToolCall) -> str:
+    return json.dumps([c.name, normalize(dict(c.arguments))], sort_keys=True, default=str)
+
+
+def ordering_only(reference: Action, predicted: Action | None, later: Sequence[ToolCall]) -> bool:
+    """The student only made, earlier, read-only lookups the teacher makes later."""
+    if reference.kind != "tool_call" or predicted is None or predicted.kind != "tool_call":
+        return False
+    upcoming = {_call_key(c) for c in later}
+    return all(
+        c.name.startswith(READ_ONLY_PREFIXES) and _call_key(c) in upcoming for c in predicted.calls
+    )
+
+
+def teacher_calls_after(states: Sequence[State]) -> dict[str, tuple[ToolCall, ...]]:
+    """Per state, every tool call the teacher makes at later steps of its episode."""
+    episodes: dict[tuple[str, int], list[State]] = {}
+    for s in states:
+        episodes.setdefault((s.task_id, s.rep), []).append(s)
+    after: dict[str, tuple[ToolCall, ...]] = {}
+    for steps in episodes.values():
+        steps.sort(key=lambda s: s.index)
+        for i, s in enumerate(steps):
+            after[s.step_id] = tuple(
+                c
+                for later in steps[i + 1 :]
+                if later.reference.kind == "tool_call"
+                for c in later.reference.calls
+            )
+    return after
+
+
 def as_target(text: str) -> str:
     """A completion as the model emitted it, up to and including the stop token."""
     return text.split(IM_END, 1)[0] + IM_END
@@ -150,6 +211,7 @@ def build_pairs(
     """Pairs plus the counts the manifest and the E4 kill gate need."""
     names = list(catalog_names)
     by_step = {s.step_id: s for s in states}
+    after = teacher_calls_after(states)
     outcomes: Counter[str] = Counter()
     buckets: Counter[str] = Counter()
     call_disagreements = 0
@@ -162,8 +224,13 @@ def build_pairs(
             raise ValueError(f"completion for unknown state {rec['step_id']}")
         n += 1
         verdict = judge(state.reference, rec["completion"], names, state.context, run)
-        outcomes[verdict.outcome] += 1
         predicted = parse_completion(rec["completion"]).action
+        outcome = verdict.outcome
+        if outcome == "pair" and is_teacher_reasoning(state.reference):
+            outcome = "teacher_reasoning"
+        elif outcome == "pair" and ordering_only(state.reference, predicted, after[state.step_id]):
+            outcome = "ordering_only"
+        outcomes[outcome] += 1
         if (
             state.reference.kind == "tool_call"
             and predicted is not None
@@ -171,7 +238,7 @@ def build_pairs(
             and verdict.outcome != "agree"
         ):
             call_disagreements += 1
-        if verdict.outcome != "pair":
+        if outcome != "pair":
             continue
         rejected = as_target(rec["completion"])
         key = (state.step_id, rejected)
@@ -209,6 +276,63 @@ def build_pairs(
         ),
     }
     return pairs, stats
+
+
+REVIEW_TOOL_CHARS = 700
+
+
+def _render_turn(m: Mapping[str, Any]) -> str:
+    role = m.get("role")
+    if role == "tool":
+        body = str(m.get("content") or "")
+        if len(body) > REVIEW_TOOL_CHARS:
+            body = body[:REVIEW_TOOL_CHARS] + " …"
+        return f"> **tool output:** `{body}`"
+    calls = m.get("tool_calls") or []
+    if calls:
+        rendered = "; ".join(
+            f"`{c['name']}({json.dumps(c.get('arguments') or {}, ensure_ascii=False)})`"
+            for c in calls
+        )
+        return f"> **agent calls:** {rendered}"
+    who = "agent" if role == "assistant" else "customer"
+    text = str(m.get("content") or "").replace("\n", "\n> ")
+    return f"> **{who}:** {text}"
+
+
+def review_sheet(
+    pairs: Sequence[Mapping[str, Any]], states: Sequence[State], label: str, n: int, seed: int = 0
+) -> str:
+    """E2-4: n pairs, round-robin over buckets, each with its whole conversation.
+    The first sheet (2026-10-22) showed only the last two turns, which hid what
+    the customer asked for and made tool output look like the customer talking."""
+    by_bucket: dict[str, list[Mapping[str, Any]]] = {}
+    for p in pairs:
+        by_bucket.setdefault(str(p["bucket"]), []).append(p)
+    rng = random.Random(seed)
+    for group in by_bucket.values():
+        rng.shuffle(group)
+    order = sorted(by_bucket, key=lambda b: -len(by_bucket[b]))
+    picked: list[Mapping[str, Any]] = []
+    while len(picked) < min(n, len(pairs)):
+        for b in order:
+            if by_bucket[b] and len(picked) < n:
+                picked.append(by_bucket[b].pop())
+    contexts = {s.step_id: s.context for s in states}
+    out = [
+        f"# E2-4 pair review: {label} ({len(picked)} of {len(pairs)}, round-robin by bucket)\n",
+        "For each: is CHOSEN (teacher) clearly better than REJECTED (student) at this "
+        "point? Mark ✅ or ❌. Approve if ≥ ~27/30 are ✅. Mark ❌ when the student's "
+        "action is also reasonable: DPO pushes REJECTED away.\n",
+    ]
+    for i, p in enumerate(picked, 1):
+        out.append(f"## {i}. `{p['bucket']}` — step {p['step_id']}\n")
+        out.append("**Conversation so far:**\n")
+        out.extend(_render_turn(m) + "\n" for m in contexts[p["step_id"]])
+        out.append(f"**CHOSEN (teacher):**\n```\n{p['chosen'].removesuffix(IM_END)}\n```")
+        out.append(f"**REJECTED (student):**\n```\n{p['rejected'].removesuffix(IM_END)}\n```\n")
+        out.append("- [ ] ✅ chosen is better\n")
+    return "\n".join(out)
 
 
 # --- the tau2 executor (real runs only) --------------------------------------
@@ -369,10 +493,17 @@ def main(argv: list[str] | None = None) -> int:
         **stats,
     }
     (out_dir / f"manifest{suffix}.json").write_text(json.dumps(manifest, indent=2) + "\n")
+    label = args.adapter.rsplit("tool-router-", 1)[-1]
+    (out_dir / f"review{suffix}.md").write_text(review_sheet(pairs, states, label, n=30))
     print(
         f"[make_pairs] {stats['n_pairs']} pairs from {stats['n_completions']} completions -> {pairs_path}"
     )
     print(f"[make_pairs]   outcomes: {stats['outcomes']}")
+    dropped = {k: stats["outcomes"].get(k, 0) for k in ("ordering_only", "teacher_reasoning")}
+    print(
+        f"[make_pairs]   dropped: {dropped['ordering_only']} ordering-only lookups, "
+        f"{dropped['teacher_reasoning']} teacher-reasoning replies"
+    )
     print(f"[make_pairs]   per bucket: {stats['pairs_per_bucket']}")
     share = stats["equivalent_share_of_call_disagreements"]
     if share is not None:

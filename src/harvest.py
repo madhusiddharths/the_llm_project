@@ -57,6 +57,12 @@ from src.throttle import DailyQuotaExhausted, RateLimiter, install
 DOMAIN = "retail"
 
 # MEASURED 2026-09-11 over 59 real episodes: 15.7 requests/episode mean, 22 max.
+# RE-MEASURED 2026-10-25 from the trajectories (agent + simulator turns, judge,
+# hallucination retries): epoch 1 c80, 322 episodes, mean 15.3, p95 22, max 27;
+# nemotron35 c80, 178 episodes, mean 15.5, p95 21, max 26. The episodes did not
+# get longer; 22 was the max of too small a sample. Night-level overhead (failed
+# calls on provider 5xx, re-run tasks) is separate: 995 requests bought 43 logged
+# episodes on 2026-10-26 UTC, ~23 each.
 #
 # The guard below budgets with the MAX, not the mean, because an episode killed
 # at 90% has still spent everything it spent. The first full run ended 73 requests
@@ -67,7 +73,7 @@ DOMAIN = "retail"
 # as episodes get longer, and everything in TeacherConfig is inside
 # teacher_fingerprint(), so putting it there would orphan an in-progress harvest
 # every time the estimate was refined.
-MAX_REQUESTS_PER_EPISODE = 22
+MAX_REQUESTS_PER_EPISODE = 27
 
 # Stop when this many batches in a row log nothing. 2026-09-16: the teacher's
 # only provider returned 404 for a whole day and the run burned 981 requests on

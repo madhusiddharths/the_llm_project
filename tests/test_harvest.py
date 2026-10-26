@@ -86,8 +86,8 @@ def test_no_daily_cap_means_no_ceiling(tmp_path):
 
 def test_the_guard_budgets_above_the_measured_mean():
     """An episode killed at 90% has spent everything it spent, so the guard has to
-    use the worst case (22 measured) not the mean (15.7)."""
-    assert MAX_REQUESTS_PER_EPISODE >= 22
+    use the worst case (27 measured over 500 episodes) not the mean (15.5)."""
+    assert MAX_REQUESTS_PER_EPISODE >= 27
 
 
 # --- batch files never collide across sessions --------------------------------
@@ -141,5 +141,6 @@ def test_a_catalog_missing_a_native_tool_is_refused():
 
 def test_the_empty_batch_breaker_trips_before_a_days_quota_is_gone():
     """2026-09-16 burned 981 requests on failures; the breaker caps that at
-    two batches of four episodes, worst case ~180 requests."""
-    assert MAX_CONSECUTIVE_EMPTY_BATCHES * 4 * MAX_REQUESTS_PER_EPISODE < 200
+    two batches of four episodes, worst case ~220 requests, under a quarter of
+    the day."""
+    assert MAX_CONSECUTIVE_EMPTY_BATCHES * 4 * MAX_REQUESTS_PER_EPISODE < 250

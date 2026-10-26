@@ -1,0 +1,21 @@
+{
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "adapter": "madhusiddharths1/tool-router-qwen3b-sft",
+  "backend": "mlx",
+  "versions": {
+    "mlx": "0.32.3",
+    "mlx_lm": "0.32.0"
+  },
+  "sampling": {
+    "temperature": 0.0,
+    "samples": 1,
+    "max_tokens": 1024,
+    "seed": 1234
+  },
+  "max_model_len": 32768,
+  "logprobs": false,
+  "prompts_file": "prompts-train-c16.jsonl",
+  "prompts_sha256": "3ec58dd928a16b58e48ceaeee073f8047ef65e5506fbb32ecccc59ec72262018",
+  "config_fingerprint": "767962db61ce61cb605364bb7aad766f469b2b1b0e8b299724b0fcbc0ef94b4d",
+  "seconds": 7822.3
+}
