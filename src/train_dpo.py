@@ -32,6 +32,23 @@ Choices that differ from the plan's sketch, and why (review these):
   4. Sequence log-prob = SUM over the completion's tokens (standard DPO), and
      the completion includes <|im_end|>, as in SFT.
 
+Added 2026-10-26, after the first run collapsed (plain DPO drove the first-token
+p(<tool_call>) from ~0.9 to ~0.0003 within one epoch at 1.5B, while the training
+margin and reward accuracy looked perfect). <tool_call> is shared by both sides
+of a call-vs-call pair, so it cancels there; every reply-over-call pair pushes it
+down, and the call-over-reply pairs, whose rejected side is a long reply, are
+cheaper to win by pushing that reply down. Nothing held the chosen side up.
+  5. nll_weight: L = DPO + nll_weight * (-pc / n_c), the chosen side's per-token
+     NLL (RPO). Per token, so a long reply does not outweigh a short call. Its
+     gradient only adds to the chosen coefficient, so the factorisation holds.
+  6. balance_decisions: as many call_instead_of_reply as premature_termination
+     pairs (the larger bucket is downsampled, seeded), so the call-or-reply
+     decision is not tilted by the student's error mix.
+  7. max_decision_drift: before the final push, the greedy first token is read
+     at up to DECISION_SAMPLE pair states, before and after training. The run is
+     refused if the call rate moved away from the teacher's by more than the
+     drift, or fell below half of min(SFT, teacher).
+
     python src/train_dpo.py --config configs/v2/qwen15b-dpo.yaml --data <pairs dir> \\
         --parent madhusiddharths1/tool-router-qwen15b-sft \\
         --output-dir /kaggle/working/qwen15b-dpo --hub-repo <user>/tool-router-qwen15b-dpo --wandb
@@ -58,6 +75,7 @@ from src.config import ExperimentConfig
 from src.hashing import hash_file
 from src.invariants import InvariantViolation, assert_pairs_train_only, check_all
 from src.train import (
+    IGNORE,
     MAX_GRAD_NORM,
     Encoded,
     TokenBoundaryError,
@@ -70,6 +88,8 @@ from src.train import (
 )
 
 REFERENCE_FILE = "reference_logps.json"
+TOOL_CALL = "<tool_call>"
+DECISION_SAMPLE = 64
 
 
 # --- data --------------------------------------------------------------------
@@ -135,6 +155,23 @@ def encode_pair(tokenizer, pair: dict[str, Any]) -> EncodedPair:
     return EncodedPair(pair["pair_id"], out[0], out[1])
 
 
+def balance_decision_pairs(
+    pairs: list[dict[str, Any]], seed: int
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Downsample the larger of the two call-or-reply buckets to the smaller."""
+    a = [p for p in pairs if p["bucket"] == "call_instead_of_reply"]
+    b = [p for p in pairs if p["bucket"] == "premature_termination"]
+    keep = min(len(a), len(b))
+    rng = random.Random(seed)
+    dropped = {id(p) for side in (a, b) for p in rng.sample(side, len(side) - keep)}
+    kept = [p for p in pairs if id(p) not in dropped]
+    return kept, {
+        "call_instead_of_reply": len(a),
+        "premature_termination": len(b),
+        "kept_each": keep,
+    }
+
+
 def encode_pairs(
     tokenizer, pairs: list[dict[str, Any]], max_len: int
 ) -> tuple[list[EncodedPair], dict[str, int]]:
@@ -166,6 +203,52 @@ def dpo_terms(
     loss = max(-z, 0.0) + math.log1p(math.exp(-abs(z)))  # -log sigmoid(z) = softplus(-z)
     s = 0.5 * (1.0 - math.tanh(z / 2))  # sigmoid(-z), no overflow at any z
     return loss, -beta * s, beta * s, z
+
+
+def n_targets(enc: Encoded) -> int:
+    """Completion tokens scored by sequence_logp (masked_lm_loss's label shift)."""
+    return sum(label != IGNORE for label in enc.labels[1:])
+
+
+def first_token_is_call(model, enc: Encoded, device, tool_call_id: int) -> bool:
+    """The greedy first completion token at this state is <tool_call>."""
+    import torch
+
+    start = next(i for i, label in enumerate(enc.labels) if label != IGNORE)
+    ids = torch.tensor([enc.input_ids[:start]], device=device)
+    with (
+        torch.no_grad(),
+        torch.autocast(device.type, dtype=torch.float16, enabled=device.type == "cuda"),
+    ):
+        base = model.get_base_model()
+        hidden = base.model(input_ids=ids).last_hidden_state[:, -1]
+        return int(base.lm_head(hidden).argmax(-1)) == tool_call_id
+
+
+def decision_rates(model, pairs: list[EncodedPair], device, tool_call_id: int) -> dict[str, float]:
+    """Model and teacher call rates at up to DECISION_SAMPLE pair states."""
+    sample = sorted(pairs, key=lambda p: p.pair_id)[:: max(1, len(pairs) // DECISION_SAMPLE)]
+    sample = sample[:DECISION_SAMPLE]
+    was_training = model.training
+    model.eval()
+    model_calls = sum(first_token_is_call(model, p.chosen, device, tool_call_id) for p in sample)
+    model.train(was_training)
+    start = [next(i for i, lab in enumerate(p.chosen.labels) if lab != IGNORE) for p in sample]
+    teacher = sum(p.chosen.input_ids[s] == tool_call_id for p, s in zip(sample, start, strict=True))
+    return {"n": len(sample), "model": model_calls / len(sample), "teacher": teacher / len(sample)}
+
+
+def check_decisions(before: dict[str, float], after: dict[str, float], drift: float) -> None:
+    """Refuse a run whose call rate ran away (choice 7)."""
+    teacher = before["teacher"]
+    away = abs(after["model"] - teacher) - abs(before["model"] - teacher)
+    floor = 0.5 * min(before["model"], teacher)
+    if away > drift or after["model"] < floor:
+        raise InvariantViolation(
+            f"decision collapse: first-token call rate {before['model']:.2f} -> "
+            f"{after['model']:.2f} (teacher {teacher:.2f}, {after['n']} states); "
+            "the final adapter was not pushed"
+        )
 
 
 def sequence_logp(model, enc: Encoded, device):
@@ -263,6 +346,14 @@ def train(
     if (ckpt := _latest_checkpoint(out_dir)) is not None:
         set_peft_model_state_dict(model, load_file(str(ckpt / "adapter_model.safetensors")))
         state = torch.load(ckpt / "trainer_state.pt", map_location=device, weights_only=False)
+        if state.get("config_fingerprint") != cfg.fingerprint():
+            # 2026-10-26: the collapsed first run's checkpoints sit in the old Hub
+            # repos; resuming one would skip training and push it again.
+            raise InvariantViolation(
+                f"{ckpt.name} was saved by another config "
+                f"({str(state.get('config_fingerprint'))[:12]}, this is {cfg.fingerprint()[:12]}); "
+                "use a fresh --output-dir and --hub-repo"
+            )
         opt.load_state_dict(state["optimizer"])
         sched.load_state_dict(state["scheduler"])
         scaler.load_state_dict(state["scaler"])
@@ -276,13 +367,16 @@ def train(
         order = random.Random(cfg.seed + epoch).sample(range(len(pairs)), len(pairs))
         for g in range(0, len(order), accum):
             group = [pairs[i] for i in order[g : g + accum]]
-            losses, zs, margins_c, margins_r = [], [], [], []
+            losses, zs, margins_c, margins_r, nlls = [], [], [], [], []
             for p in group:
                 rc, rr = ref[p.pair_id]
                 with torch.no_grad():
                     pc = float(sequence_logp(model, p.chosen, device))
                     pr = float(sequence_logp(model, p.rejected, device))
                 loss, coef_c, coef_r, z = dpo_terms(dpo.beta, pc, pr, rc, rr)
+                n_c = n_targets(p.chosen)
+                coef_c -= dpo.nll_weight / n_c  # choice 5: d/dpc of nll_weight * (-pc / n_c)
+                nlls.append(-pc / n_c)
                 for enc, coef in ((p.chosen, coef_c), (p.rejected, coef_r)):
                     scaler.scale(sequence_logp(model, enc, device) * (coef / len(group))).backward()
                 losses.append(loss)
@@ -303,13 +397,14 @@ def train(
                 "reward_margin": sum(zs) / n,
                 "reward_chosen": sum(margins_c) / n,
                 "reward_rejected": sum(margins_r) / n,
+                "chosen_nll": sum(nlls) / n,
                 "lr": sched.get_last_lr()[0],
                 "epoch": epoch,
             }
             log(
                 f"[train_dpo] epoch {epoch} step {step}/{total_steps} loss {last['loss']:.4f} "
                 f"acc {last['reward_accuracy']:.2f} margin {last['reward_margin']:+.3f} "
-                f"lr {last['lr']:.2e}",
+                f"nll {last['chosen_nll']:.3f} lr {last['lr']:.2e}",
                 step=step,
                 metrics=last,
             )
@@ -325,6 +420,7 @@ def train(
                 "scaler": scaler.state_dict(),
                 "epoch": epoch,
                 "global_step": step,
+                "config_fingerprint": cfg.fingerprint(),
             },
             ckpt / "trainer_state.pt",
         )
@@ -381,6 +477,10 @@ def main(argv: list[str] | None = None) -> int:
     from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(cfg.model.base_model)
+    balance = None
+    if cfg.dpo.balance_decisions:
+        raw_pairs, balance = balance_decision_pairs(raw_pairs, cfg.seed)
+        print(f"[train_dpo] balanced decision pairs: {balance} -> {len(raw_pairs)} pairs")
     pairs, skipped = encode_pairs(tokenizer, raw_pairs, cfg.train.max_seq_len)
     if cfg.smoke:
         # The longest pair, not the first: one step then proves T4 memory, as SFT's smoke does.
@@ -419,7 +519,14 @@ def main(argv: list[str] | None = None) -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     started = time.time()
     ref = reference_logps(model, pairs, device, args.output_dir / REFERENCE_FILE, log)
+    tool_call_id = tokenizer.convert_tokens_to_ids(TOOL_CALL)
+    decisions = {"before": decision_rates(model, pairs, device, tool_call_id)}
+    log(f"[train_dpo] first-token call rate before: {decisions['before']}")
     result = train(cfg, model, pairs, ref, args.output_dir, hub_repo=args.hub_repo, log=log)
+    decisions["after"] = decision_rates(model, pairs, device, tool_call_id)
+    log(f"[train_dpo] first-token call rate after: {decisions['after']}")
+    if cfg.dpo.max_decision_drift is not None:
+        check_decisions(decisions["before"], decisions["after"], cfg.dpo.max_decision_drift)
 
     summary = {
         **result,
@@ -442,6 +549,8 @@ def main(argv: list[str] | None = None) -> int:
             )
         },
         "n_pairs_used": len(pairs),
+        "balance": balance,
+        "decisions": decisions,
         "skipped": skipped,
         "seconds": round(time.time() - started, 1),
         "versions": {"torch": torch.__version__, "transformers": transformers.__version__},

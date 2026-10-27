@@ -189,6 +189,11 @@ class DPOConfig(_Frozen):
     # it unchanged. See src/train_dpo.py.
     init: Literal["continue_sft_adapter"]
     max_steps: int | None = None
+    # 2026-10-26: plain DPO (these three unset) drove p(<tool_call>) to ~0 within
+    # one epoch at every size. See src/train_dpo.py, choices 5-7.
+    nll_weight: float = 0.0  # weight on the chosen side's per-token NLL (RPO)
+    balance_decisions: bool = False  # as many reply-over-call as call-over-reply pairs
+    max_decision_drift: float | None = None  # collapse check before the final push
 
 
 class GRPOConfig(_Frozen):

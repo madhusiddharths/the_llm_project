@@ -11,3 +11,7 @@ dpo:
   pair_source: forced_train_c16_greedy
   sampling_temperature: 0.0
   init: continue_sft_adapter      # see src/train_dpo.py
+  # 2026-10-26: the first run (none of these) collapsed to never calling a tool.
+  nll_weight: 1.0                 # anchor: per-token NLL on the chosen side
+  balance_decisions: true         # equal reply-over-call and call-over-reply pairs
+  max_decision_drift: 0.15        # refuse to push if the call rate runs away

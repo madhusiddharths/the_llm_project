@@ -13,7 +13,7 @@ import pytest
 
 from src.config import load_config
 from src.invariants import InvariantViolation
-from src.train_dpo import dpo_terms, load_pairs
+from src.train_dpo import balance_decision_pairs, check_decisions, dpo_terms, load_pairs
 
 
 def test_dpo_terms_match_the_definition_and_its_derivative():
@@ -32,6 +32,28 @@ def test_dpo_terms_never_overflow():
     for pc in (-1e6, 1e6):
         loss, coef_c, _, _ = dpo_terms(1.0, pc, 0.0, 0.0, 0.0)
         assert math.isfinite(loss) and math.isfinite(coef_c)
+
+
+def test_balancing_downsamples_the_larger_decision_bucket_only():
+    pairs = (
+        [{"pair_id": f"a{i}", "bucket": "call_instead_of_reply"} for i in range(5)]
+        + [{"pair_id": f"b{i}", "bucket": "premature_termination"} for i in range(2)]
+        + [{"pair_id": f"c{i}", "bucket": "wrong_tool_neighbor"} for i in range(3)]
+    )
+    kept, stats = balance_decision_pairs(pairs, seed=7)
+    buckets = [p["bucket"] for p in kept]
+    assert buckets.count("call_instead_of_reply") == buckets.count("premature_termination") == 2
+    assert buckets.count("wrong_tool_neighbor") == 3 and stats["kept_each"] == 2
+    assert kept == balance_decision_pairs(pairs, seed=7)[0]  # seeded
+
+
+def test_the_collapse_check_refuses_a_run_that_stopped_calling_tools():
+    before = {"n": 64, "model": 0.8, "teacher": 0.5}
+    with pytest.raises(InvariantViolation, match="decision collapse"):
+        check_decisions(before, {"n": 64, "model": 0.0, "teacher": 0.5}, 0.15)
+    check_decisions(before, {"n": 64, "model": 0.6, "teacher": 0.5}, 0.15)  # toward the teacher
+    with pytest.raises(InvariantViolation):
+        check_decisions(before, {"n": 64, "model": 1.0, "teacher": 0.5}, 0.15)  # away, too far
 
 
 def _pairs_dir(tmp_path, **manifest_overrides):
@@ -148,6 +170,41 @@ def test_the_factorised_backward_equals_the_joint_loss_gradient(tokenizer):
         assert torch.allclose(w, q.grad, atol=1e-6, rtol=1e-4)
 
 
+def test_the_nll_anchor_only_adds_to_the_chosen_coefficient(tokenizer):
+    from src.train_dpo import encode_pair, n_targets, sequence_logp
+
+    model = _tiny_policy(tokenizer)
+    p = encode_pair(tokenizer, _pair())
+    dev = torch.device("cpu")
+    beta, alpha, rc, rr = 0.5, 1.0, -3.0, -4.0
+    params = [q for q in model.parameters() if q.requires_grad]
+    n_c = n_targets(p.chosen)
+    assert n_c == sum(t != -100 for t in p.chosen.labels) - (p.chosen.labels[0] != -100)
+
+    pc, pr = sequence_logp(model, p.chosen, dev), sequence_logp(model, p.rejected, dev)
+    joint = -torch.nn.functional.logsigmoid(beta * ((pc - rc) - (pr - rr))) - alpha * pc / n_c
+    want = torch.autograd.grad(joint, params)
+
+    model.zero_grad()
+    _, coef_c, coef_r, _ = dpo_terms(beta, float(pc), float(pr), rc, rr)
+    (sequence_logp(model, p.chosen, dev) * (coef_c - alpha / n_c)).backward()
+    (sequence_logp(model, p.rejected, dev) * coef_r).backward()
+    for w, q in zip(want, params, strict=True):
+        assert torch.allclose(w, q.grad, atol=1e-6, rtol=1e-4)
+
+
+def test_decision_rates_read_the_first_token_of_each_state(tokenizer):
+    from src.train_dpo import decision_rates, encode_pair
+
+    model = _tiny_policy(tokenizer)
+    reply = {**_pair("1:0:4:0"), "chosen": "Done.<|im_end|>", "rejected": _pair()["chosen"]}
+    pairs = [encode_pair(tokenizer, _pair()), encode_pair(tokenizer, reply)]
+    rates = decision_rates(
+        model, pairs, torch.device("cpu"), tokenizer.convert_tokens_to_ids("<tool_call>")
+    )
+    assert rates["n"] == 2 and rates["teacher"] == 0.5 and 0.0 <= rates["model"] <= 1.0
+
+
 def test_one_dpo_step_moves_the_adapter_saves_and_resumes(tokenizer, tmp_path):
     from src.train_dpo import encode_pairs, reference_logps, train
 
@@ -177,3 +234,7 @@ def test_one_dpo_step_moves_the_adapter_saves_and_resumes(tokenizer, tmp_path):
         == 1
     )
     assert any("resumed from checkpoint-epoch-0" in m for m in resumed)
+
+    other = load_config("configs/v2/qwen15b-dpo.yaml", smoke=True)  # another fingerprint
+    with pytest.raises(InvariantViolation, match="another config"):
+        train(other, _tiny_policy(tokenizer), pairs, ref, tmp_path, log=lambda *a, **k: None)
