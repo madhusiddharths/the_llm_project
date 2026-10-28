@@ -284,6 +284,38 @@ def results_engine(backend: str) -> str:
     return "vllm" if backend == "server" else backend
 
 
+def cell_tag(
+    cfg, adapter: str | None, backend: str, label: str | None, escalate: float | None
+) -> str:
+    """The name of a cell's results file: free-<tag>-c<catalog>.jsonl."""
+    tag = label or (f"{cfg.name}-sft" if adapter else f"{cfg.name}-zeroshot")
+    if backend == "fixed":
+        tag = f"{cfg.name}-fixed"
+    if escalate is not None:
+        tag += f"-esc{escalate:.2f}"
+    return tag
+
+
+def cell_identity(
+    cfg, harness: str, catalog: int, adapter: str | None, backend: str, escalate: float | None
+) -> dict[str, Any]:
+    """What a cell's results are keyed to; its hash is the RunLog fingerprint.
+    eval_headline.py reads cell progress through this, so the two never disagree."""
+    identity = {
+        "config": cfg.fingerprint(),
+        "harness": harness,
+        "catalog": catalog,
+        "catalog_hash": cfg.eval.catalog_hashes[catalog],
+        "prompt_template_hash": template_hash(),
+        "adapter": adapter,
+        "backend": results_engine(backend),
+    }
+    if escalate is not None:
+        # Only when set, so every Stage A identity stays byte-identical.
+        identity["escalation"] = {"threshold": escalate, "signal": "step"}
+    return identity
+
+
 class ServerPolicy:
     """The student behind a local vLLM OpenAI-compatible server, so tau2 can run
     several episodes at once (--concurrency) and vLLM batches their turns.
@@ -661,6 +693,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--label", help="names the results file (default: config + adapter tag)")
     parser.add_argument(
+        "--n-seeds", type=int, metavar="N", help="run only the first N of eval.seeds"
+    )
+    parser.add_argument(
         "--hub-sync",
         metavar="REPO",
         help="private HF dataset repo that persists results across sessions",
@@ -720,7 +755,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     assert_split_disjoint(train_ids, eval_ids)
     targets = eval_ids[: cfg.eval.n_tasks]
-    variants = list(enumerate(cfg.eval.seeds))
+    # --n-seeds runs the first N seeds only. Not part of the identity: the cells it
+    # logs are the same cells a full run logs, so a later full run continues them.
+    variants = list(enumerate(cfg.eval.seeds))[: args.n_seeds]
 
     system_text = load_system_prompt(cfg)
     native = load_catalog(cfg, 16)
@@ -729,24 +766,9 @@ def main(argv: list[str] | None = None) -> int:
     native_names = {t["function"]["name"] for t in native}
     escalating = args.escalate is not None
 
-    tag = args.label or (f"{cfg.name}-sft" if args.adapter else f"{cfg.name}-zeroshot")
-    if args.backend == "fixed":
-        tag = f"{cfg.name}-fixed"
-    if escalating:
-        tag += f"-esc{args.escalate:.2f}"
+    tag = cell_tag(cfg, args.adapter, args.backend, args.label, args.escalate)
     suffix = ".smoke" if cfg.smoke else ""
-    identity = {
-        "config": cfg.fingerprint(),
-        "harness": harness,
-        "catalog": args.catalog,
-        "catalog_hash": cfg.eval.catalog_hashes[args.catalog],
-        "prompt_template_hash": template_hash(),
-        "adapter": args.adapter,
-        "backend": results_engine(args.backend),
-    }
-    if escalating:
-        # Only when set, so every Stage A identity stays byte-identical.
-        identity["escalation"] = {"threshold": args.escalate, "signal": "step"}
+    identity = cell_identity(cfg, harness, args.catalog, args.adapter, args.backend, args.escalate)
     log = RunLog(
         cfg.paths.results_dir / f"free-{tag}-c{args.catalog}{suffix}.jsonl",
         config_fingerprint=hash_obj(identity),

@@ -256,7 +256,13 @@ def train(
     hub_repo: str | None = None,
     log: Callable[..., None] = print,
     sampler=sample_group,
+    backward_on_ties: bool = False,
 ) -> dict[str, Any]:
+    """`backward_on_ties` (the smoke's memory check): a group with equal rewards
+    still runs its forward and backward, with advantage 0. Its only gradient is
+    the KL term's, zero at the reference, so the adapter does not move; without
+    it a tied smoke group (2026-10-28: both samples replies at a reply state)
+    skips the backward and the check passes without measuring anything."""
     import torch
     from peft import set_peft_model_state_dict
     from safetensors.torch import load_file
@@ -314,8 +320,8 @@ def train(
         active = [
             (st, s, a)
             for st, ss, adv in groups
-            if adv is not None
-            for s, a in zip(ss, adv, strict=True)
+            if adv is not None or backward_on_ties
+            for s, a in zip(ss, adv or [0.0] * len(ss), strict=True)
         ]
         kls = []
         for st, (prompt_ids, gen, _), a in active:
@@ -341,6 +347,7 @@ def train(
             "reward": history[-1],
             "zero_std_groups": sum(adv is None for *_, adv in groups) / len(groups),
             "kl": sum(kls) / len(kls) if kls else 0.0,
+            "backward_seqs": len(active),
             "call_rate": calls / n,
             "completion_tokens": sum(lengths) / n,
             "truncated": truncated / n,
@@ -351,7 +358,7 @@ def train(
             f"[train_grpo] step {step}/{g.max_steps} reward {last['reward']:.3f} "
             f"execution {last.get('r_execution', 0.0):.3f} kl {last['kl']:.4f} "
             f"zero-std {last['zero_std_groups']:.2f} calls {last['call_rate']:.2f} "
-            f"len {last['completion_tokens']:.0f}",
+            f"len {last['completion_tokens']:.0f} backward {len(active)}",
             step=step,
             metrics=last,
         )
@@ -494,7 +501,16 @@ def main(argv: list[str] | None = None) -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     started = time.time()
     result = train(
-        cfg, model, tokenizer, states, tools, run, args.output_dir, hub_repo=args.hub_repo, log=log
+        cfg,
+        model,
+        tokenizer,
+        states,
+        tools,
+        run,
+        args.output_dir,
+        hub_repo=args.hub_repo,
+        log=log,
+        backward_on_ties=cfg.smoke,
     )
     summary = {
         **result,

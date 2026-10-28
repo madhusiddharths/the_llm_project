@@ -241,4 +241,29 @@ def test_a_group_with_equal_rewards_does_not_move_the_adapter(tokenizer, tmp_pat
         sampler=_sampler([GOOD, GOOD]),
     )
     assert result["final"]["zero_std_groups"] == 1.0 and math.isclose(result["final"]["kl"], 0.0)
+    assert result["final"]["backward_seqs"] == 0
+    assert all(torch.equal(before[n], q) for n, q in model.named_parameters() if q.requires_grad)
+
+
+def test_the_smoke_runs_a_backward_on_a_tied_group_without_moving_the_adapter(tokenizer, tmp_path):
+    # The smoke is a memory check on the longest prompt; a tie must not skip it.
+    from src.train_grpo import train
+
+    cfg = load_config("configs/v2/qwen05b-grpo.yaml", smoke=True)
+    model = _tiny_policy(tokenizer)
+    before = {n: q.detach().clone() for n, q in model.named_parameters() if q.requires_grad}
+    result = train(
+        cfg,
+        model,
+        tokenizer,
+        [_state()],
+        TOOLS,
+        fake_run,
+        tmp_path,
+        log=lambda *a, **k: None,
+        sampler=_sampler([GOOD, GOOD]),
+        backward_on_ties=True,
+    )
+    assert result["final"]["zero_std_groups"] == 1.0
+    assert result["final"]["backward_seqs"] == 2
     assert all(torch.equal(before[n], q) for n, q in model.named_parameters() if q.requires_grad)

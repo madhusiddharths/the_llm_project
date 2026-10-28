@@ -1,0 +1,29 @@
+# Stage I (plan X9): the free-running headline cells. Read by src/eval_headline.py,
+# not an experiment config (preflight only loads configs/*.yaml).
+#
+# The best size from v1 is qwen3b (DECIDED 2026-10-24, the Stage D model), run
+# under the simulator epoch its teacher c80 baseline was recorded under.
+config: configs/nemotron35/qwen3b.yaml
+
+# Teacher fingerprint (teacher, split, simulator, judge) the headline is pinned to:
+# the one the nemotron35 teacher c80 baseline was recorded under. eval_headline
+# refuses to run if the config above computes anything else, or if no non-smoke
+# record in results/harvest-baseline*.jsonl carries it. Never edit this to make
+# a run start; a different value is a different simulator epoch.
+harness: 5331c2f6440011ff2a9fe5a95a22246c109f947c1b034800a8c5162f1a30f8f9
+
+catalogs: [16, 80]
+
+# In run order: SFT first, GRPO last (its adapters land last). DPO stopped at the
+# E4-3 kill gate (2026-10-28); dropping its cells is confirmed at I-2.
+# The SFT cells write the same files as `make free-mlx CFG=qwen3b SIM=nemotron35`,
+# so episodes from that run count here.
+methods:
+  - name: sft
+    adapter: madhusiddharths1/tool-router-qwen3b-sft
+  - name: grpo
+    adapter: madhusiddharths1/tool-router-qwen3b-grpo
+
+# I-2: 5 seeds (~9.5 quota days with DPO, plan X9) or 3. Episodes run seed by
+# seed, so a 3-seed run is the first 3 seeds of a 5-seed one.
+n_seeds: 5

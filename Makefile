@@ -34,6 +34,7 @@ help:
 	@echo "forced-mlx   forced eval of a Hub adapter on the Mac: MODEL=qwen15b ADAPTER=qwen15b-sft-f25"
 	@echo "score-forced score pulled vLLM completions: MODEL=qwen15b ADAPTER=qwen15b-sft-f25 [CATALOGS=\"16 40 80\"]"
 	@echo "confidence-mlx router confidence check (log-probs + escalation sweep): MODEL=qwen3b CATALOG=80"
+	@echo "eval-headline Stage I on the Mac: configs/v3/headline.yaml cells (quota); ARGS=--plan shows progress"
 	@echo "prompt-hash  print the live serializer hash for configs/base.yaml"
 	@echo "SIM=gemma    run any quota target under simulator epoch 2 (configs/sim/gemma.yaml)"
 
@@ -196,8 +197,14 @@ confidence-mlx:
 		--completions results/completions-$(MODEL)-sft-mlx-c$(CATALOG)-logprobs.jsonl \
 		--results results/forced-$(MODEL)-sft-mlx-lp-c$(CATALOG).jsonl
 
-train-dpo train-grpo serve-bench eval-headline:
+train-dpo train-grpo serve-bench:
 	@echo "$@ runs on Kaggle; see notebooks/ (kaggle_dpo.ipynb, kaggle_grpo.ipynb)."
+
+# Stage I on the Mac (quota): the headline cells in configs/v3/headline.yaml, in
+# order, until the day's budget is spent. ARGS=--plan shows progress, no quota.
+eval-headline:
+	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/eval_headline.py \
+		--concurrency $(MLX_CONCURRENCY) --hub-sync $(HUB_SYNC) $(ARGS)
 
 prompt-hash:
 	@$(PY) -c "from src.prompts import template_hash; print(template_hash())"
