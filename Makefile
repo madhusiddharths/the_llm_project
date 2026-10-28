@@ -7,7 +7,7 @@ PY := .venv/bin/python
 # Offline, <2 min, no GPU and no API quota. The other smoke paths need hardware
 # or quota and run where the real job runs: train/generate/eval_free --smoke on
 # Kaggle (notebooks/kaggle_*.ipynb), harvest --smoke against the live API.
-SCRIPTS := eval_forced router_node taxonomy train_grpo serve_bench
+SCRIPTS := eval_forced router_node taxonomy serve_bench
 CONFIG ?= configs/qwen05b.yaml
 
 .PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan baseline pull pull-free eval mlx-calibrate free-mlx stage-d-mlx pairs-export pairs-generate pairs forced-mlx score-forced confidence-mlx train-dpo train-grpo serve-bench eval-headline clean
@@ -197,7 +197,7 @@ confidence-mlx:
 		--results results/forced-$(MODEL)-sft-mlx-lp-c$(CATALOG).jsonl
 
 train-dpo train-grpo serve-bench eval-headline:
-	@echo "$@ runs on Kaggle; see notebooks/ (kaggle_dpo.ipynb for train-dpo)."
+	@echo "$@ runs on Kaggle; see notebooks/ (kaggle_dpo.ipynb, kaggle_grpo.ipynb)."
 
 prompt-hash:
 	@$(PY) -c "from src.prompts import template_hash; print(template_hash())"

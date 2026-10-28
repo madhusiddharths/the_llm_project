@@ -1,0 +1,17 @@
+# Stage G overlay (plan X7). Not a full config: configs/v2/<model>-grpo.yaml
+# combines it with a model config. Starting points to tune, not settled values.
+grpo:
+  level: step
+  group_size: 4                   # plan X7: 4-8; 4 keeps a T4 step near a minute at 0.5B
+  reward_weights:                 # src/reward.py; a perfect call scores 1
+    tool_exists: 0.1
+    tool_name: 0.2
+    schema: 0.1
+    execution: 0.6
+  kl_coef: 0.04                   # per-token KL to the SFT adapter
+  learning_rate: 1.0e-5
+  max_steps: 300                  # plan X7 kill gate: flat mean reward after a few hundred steps
+  prompts_per_step: 4             # 16 completions per optimizer step
+  max_new_tokens: 384             # tool calls are short; long replies are cut and scored as replies
+  temperature: 1.0
+  save_every: 25

@@ -208,6 +208,24 @@ class State:
     cut_off: bool = False  # the teacher's message hit the token limit
 
 
+def state_record(s: State) -> dict[str, Any]:
+    """One train state as GRPO's reward needs it (`make_pairs states`)."""
+    ref = s.reference
+    return {
+        "step_id": s.step_id,
+        "task_id": s.task_id,
+        "prompt": s.prompt,
+        "reference": {
+            "kind": ref.kind,
+            "text": ref.text,
+            "calls": [{"name": c.name, "arguments": dict(c.arguments)} for c in ref.calls],
+        },
+        "prior_calls": [
+            {"name": c.name, "arguments": dict(c.arguments)} for c in prior_calls(s.context)
+        ],
+    }
+
+
 def hit_token_limit(message: Mapping[str, Any], max_tokens: int) -> bool:
     """True if the provider stopped this message at the token limit. tau2 keeps
     the response as `raw_data` (a repr of the provider's dict) and the token
@@ -441,7 +459,7 @@ def load_states(cfg, harvest_cfg) -> tuple[list[State], list[str], list[str]]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser("E2: train-split states -> student completions -> DPO pairs")
-    parser.add_argument("cmd", choices=["export", "build"])
+    parser.add_argument("cmd", choices=["export", "build", "states"])
     parser.add_argument("--completions", type=Path, help="build: generate.py output JSONL")
     parser.add_argument("--adapter", help="build: the SFT adapter that produced the completions")
     parser.add_argument(
@@ -469,6 +487,33 @@ def main(argv: list[str] | None = None) -> int:
                 )
         n_tasks = len({s.task_id for s in states})
         print(f"[make_pairs] {len(states)} train states from {n_tasks} tasks -> {args.out}")
+        return 0
+
+    if args.cmd == "states":
+        # G2 (GRPO) on Kaggle: the same train states with what the reward needs
+        # (the teacher's action and the calls to replay), since Kaggle has
+        # neither the harvest trajectories nor the split recomputation.
+        states_dir: Path = args.out
+        states_dir.mkdir(parents=True, exist_ok=True)
+        states_path = states_dir / "states.jsonl"
+        states_path.write_text(
+            "".join(json.dumps(state_record(s), ensure_ascii=False) + "\n" for s in states)
+        )
+        manifest = {
+            "file": states_path.name,
+            "file_sha256": hash_file(states_path),
+            "created": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "n_states": len(states),
+            "n_reply_states": sum(s.reference.kind == "reply" for s in states),
+            "teacher_fingerprint": harvest_cfg.teacher_fingerprint(),
+            "prompt_template_hash": template_hash(),
+            "system_prompt_hash": sha256_str(load_system_prompt(cfg)),
+            "catalog_size": NATIVE_CATALOG,
+            "catalog_hash": cfg.eval.catalog_hashes[NATIVE_CATALOG],
+            "train_task_ids": sorted(train_ids, key=lambda t: (len(t), t)),
+        }
+        (states_dir / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n")
+        print(f"[make_pairs] {len(states)} states -> {states_path}")
         return 0
 
     if args.completions is None or args.adapter is None:

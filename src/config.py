@@ -39,6 +39,7 @@ SMOKE_OVERRIDES: dict[str, Any] = {
 # section: merging them into a config without it would create a half-filled one.
 SMOKE_OVERRIDES_IF_SET: dict[str, Any] = {
     "dpo": {"epochs": 1, "max_steps": 1, "batch_size": 1, "grad_accum": 1},
+    "grpo": {"max_steps": 1, "group_size": 2, "prompts_per_step": 1, "max_new_tokens": 32},
 }
 
 
@@ -197,14 +198,18 @@ class DPOConfig(_Frozen):
 
 
 class GRPOConfig(_Frozen):
-    """Stage G/H (plan X7, X8). Schema only until train_grpo.py lands."""
+    """Stage G/H (plan X7, X8). Step level: src/train_grpo.py."""
 
     level: Literal["step", "episode"]
-    group_size: int
-    reward_weights: dict[str, float]
-    kl_coef: float
+    group_size: int  # completions sampled per state
+    reward_weights: dict[str, float]  # reward.CALL_COMPONENTS
+    kl_coef: float  # per-token KL to the SFT adapter (k3 estimator)
     learning_rate: float
     max_steps: int
+    prompts_per_step: int = 4  # states per optimizer step
+    max_new_tokens: int = 384
+    temperature: float = 1.0
+    save_every: int = 25  # steps between Hub checkpoints
 
 
 class ServingConfig(_Frozen):
