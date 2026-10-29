@@ -331,7 +331,7 @@ def train(
             pol = token_logps(model, enc, device)
             loss, kl = completion_loss(pol, ref.to(pol.device), a, g.kl_coef)
             scaler.scale(loss / len(active)).backward()
-            kls.append(float(kl))
+            kls.append(float(kl.detach()))
         if active:
             scaler.unscale_(opt)
             torch.nn.utils.clip_grad_norm_(params, MAX_GRAD_NORM)

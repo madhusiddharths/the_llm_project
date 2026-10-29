@@ -112,5 +112,6 @@ execution-plan.md
 .claude/settings.local.json
 graphify-out/
 
-# Merged student weights for MLX (src/mlx_engine.py); rebuilt from the Hub adapters.
+# Merged student weights for MLX (src/mlx_engine.py): a scratch copy pulled from the
+# external drive (make models-pull) and deleted after the run (make models-clean).
 models/

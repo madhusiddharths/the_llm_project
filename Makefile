@@ -10,7 +10,7 @@ PY := .venv/bin/python
 SCRIPTS := eval_forced router_node taxonomy serve_bench
 CONFIG ?= configs/qwen05b.yaml
 
-.PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan baseline pull pull-free eval mlx-calibrate free-mlx stage-d-mlx pairs-export pairs-generate pairs forced-mlx score-forced confidence-mlx train-dpo train-grpo serve-bench eval-headline clean
+.PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan baseline pull pull-free eval mlx-calibrate free-mlx stage-d-mlx pairs-export pairs-generate pairs forced-mlx score-forced confidence-mlx train-dpo train-grpo serve-bench eval-headline models-list models-pull models-push models-clean clean
 
 help:
 	@echo "setup        create .venv and install local deps"
@@ -35,6 +35,10 @@ help:
 	@echo "score-forced score pulled vLLM completions: MODEL=qwen15b ADAPTER=qwen15b-sft-f25 [CATALOGS=\"16 40 80\"]"
 	@echo "confidence-mlx router confidence check (log-probs + escalation sweep): MODEL=qwen3b CATALOG=80"
 	@echo "eval-headline Stage I on the Mac: configs/v3/headline.yaml cells (quota); ARGS=--plan shows progress"
+	@echo "models-list  merged MLX models on the drive (MODEL_STORE) and in models/mlx"
+	@echo "models-pull  copy one merge from the drive before a Mac run: ADAPTER=qwen15b-sft"
+	@echo "models-push  copy merges built locally (new adapters) to the drive"
+	@echo "models-clean delete local merges that are safely on the drive (after a run)"
 	@echo "prompt-hash  print the live serializer hash for configs/base.yaml"
 	@echo "SIM=gemma    run any quota target under simulator epoch 2 (configs/sim/gemma.yaml)"
 
@@ -205,6 +209,40 @@ train-dpo train-grpo serve-bench:
 eval-headline:
 	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/eval_headline.py \
 		--concurrency $(MLX_CONCURRENCY) --hub-sync $(HUB_SYNC) $(ARGS)
+
+# --- merged MLX weights live on the external drive (2026-10-28) ---
+# models/mlx/ is scratch: pull a merge before a Mac run, delete it after. A run
+# that had to build a merge itself (new adapter) pushes it back first.
+# merge.json is copied last both ways: mlx_engine treats a folder with merge.json
+# as a finished merge, so a half-copied folder must not have one.
+MODEL_STORE ?= /Volumes/One Touch/the_llm_project/models
+
+models-list:
+	@[ -d "$(MODEL_STORE)" ] || { echo "drive not mounted: $(MODEL_STORE)"; exit 1; }
+	@for m in "$(MODEL_STORE)"/*/merge.json; do \
+		printf "%-24s %s\n" "$$(basename "$$(dirname "$$m")")" "$$(sed -n 's/.*"adapter": "\(.*\)".*/\1/p' "$$m")"; done
+	@echo "local: $$(ls models/mlx 2>/dev/null | tr '\n' ' ')"
+
+#   make models-pull ADAPTER=qwen15b-sft
+models-pull:
+	@[ -d "$(MODEL_STORE)" ] || { echo "drive not mounted: $(MODEL_STORE)"; exit 1; }
+	@grep -l '"adapter": "$(HF_USER)/tool-router-$(ADAPTER)"' "$(MODEL_STORE)"/*/merge.json | while IFS= read -r m; do \
+		d=$$(dirname "$$m"); n=$$(basename "$$d"); echo "pull $$n"; mkdir -p models/mlx/$$n; \
+		rsync -rt --exclude merge.json --exclude '._*' "$$d/" models/mlx/$$n/ && cp "$$m" models/mlx/$$n/ || exit 1; done
+	@grep -q '"adapter": "$(HF_USER)/tool-router-$(ADAPTER)"' "$(MODEL_STORE)"/*/merge.json || \
+		echo "no merge of $(ADAPTER) on the drive; the run builds one, then make models-push"
+
+models-push:
+	@[ -d "$(MODEL_STORE)" ] || { echo "drive not mounted: $(MODEL_STORE)"; exit 1; }
+	@for d in models/mlx/*/; do [ -f "$$d/merge.json" ] || continue; n=$$(basename "$$d"); \
+		[ -f "$(MODEL_STORE)/$$n/merge.json" ] && continue; echo "push $$n"; \
+		rsync -rt --exclude merge.json "$$d" "$(MODEL_STORE)/$$n/" && cp "$$d/merge.json" "$(MODEL_STORE)/$$n/" || exit 1; done
+
+# Deletes only local merges whose copy on the drive is complete (same weights size).
+models-clean:
+	@for d in models/mlx/*/; do [ -d "$$d" ] || continue; n=$$(basename "$$d"); s="$(MODEL_STORE)/$$n"; \
+		if [ -f "$$s/merge.json" ] && [ "$$(stat -f %z "$$d/model.safetensors")" = "$$(stat -f %z "$$s/model.safetensors" 2>/dev/null)" ]; then \
+			rm -rf "$$d"; echo "removed $$n"; else echo "kept $$n (not on the drive; make models-push)"; fi; done
 
 prompt-hash:
 	@$(PY) -c "from src.prompts import template_hash; print(template_hash())"
