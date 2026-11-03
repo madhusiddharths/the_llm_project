@@ -165,7 +165,9 @@ def token_logps(model, enc: Encoded, device):
         targets = labels[:, 1:].to(hidden.device)
         mask = targets != IGNORE
         logits = base.lm_head(hidden[:, :-1][mask]).float()
-    return torch.log_softmax(logits, -1).gather(-1, targets[mask].unsqueeze(-1)).squeeze(-1)
+    # device_map="auto" can put lm_head on a different GPU than the last layer
+    picked = targets[mask].to(logits.device).unsqueeze(-1)
+    return torch.log_softmax(logits, -1).gather(-1, picked).squeeze(-1)
 
 
 def completion_loss(pol, ref, advantage: float, kl_coef: float):
