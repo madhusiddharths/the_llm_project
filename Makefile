@@ -220,7 +220,7 @@ MODEL_STORE ?= /Volumes/One Touch/the_llm_project/models
 models-list:
 	@[ -d "$(MODEL_STORE)" ] || { echo "drive not mounted: $(MODEL_STORE)"; exit 1; }
 	@for m in "$(MODEL_STORE)"/*/merge.json; do \
-		printf "%-24s %s\n" "$$(basename "$$(dirname "$$m")")" "$$(sed -n 's/.*"adapter": "\(.*\)".*/\1/p' "$$m")"; done
+		printf "%-36s %s\n" "$$(basename "$$(dirname "$$m")")" "$$(sed -n 's/.*"adapter": "\(.*\)".*/\1/p' "$$m")"; done
 	@echo "local: $$(ls models/mlx 2>/dev/null | tr '\n' ' ')"
 
 #   make models-pull ADAPTER=qwen15b-sft

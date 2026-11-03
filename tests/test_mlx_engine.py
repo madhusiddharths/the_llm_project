@@ -160,3 +160,29 @@ def test_engine_check_passes_at_95_percent_identical():
     assert out["identical"] == 19 and out["passes"] and out["differing_steps"] == ["19"]
     b["18"] = {"completion": "z"}
     assert not compare(a, b)["passes"]
+
+
+def test_configs_that_share_a_base_model_share_one_merge(tmp_path, monkeypatch):
+    import json
+
+    import src.mlx_engine as eng
+    from src.config import load_config
+
+    adapter = tmp_path / "adapter"
+    adapter.mkdir()
+    (adapter / "adapter_model.safetensors").write_bytes(b"weights")
+    built = []
+
+    def fake_merge(base, src, out):
+        built.append(out)
+        out.mkdir(parents=True)
+
+    monkeypatch.setattr(eng, "merge_adapter", fake_merge)
+    root = tmp_path / "mlx"
+    a = eng.merged_model_dir(load_config("configs/qwen3b.yaml"), str(adapter), root)
+    b = eng.merged_model_dir(load_config("configs/nemotron35/qwen3b.yaml"), str(adapter), root)
+    assert a == b and len(built) == 1
+    assert a.split("/")[-1].startswith("Qwen2.5-3B-Instruct-")
+    assert json.loads((root / a.split("/")[-1] / "merge.json").read_text())["adapter"] == str(
+        adapter
+    )

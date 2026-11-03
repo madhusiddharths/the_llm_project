@@ -1,0 +1,5 @@
+# GRPO branch of the qwen3b SFT adapter (plan X4: a branch from SFT, never stacked).
+# Same overlay as 0.5B and 1.5B; only the base model changes. Trains sharded on
+# T4 x2 (train_grpo.py --shard), as the 3B SFT and DPO runs did.
+extends: [../qwen3b.yaml, grpo.yaml]
+name: qwen3b-grpo

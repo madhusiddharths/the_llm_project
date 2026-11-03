@@ -198,7 +198,9 @@ def merged_model_dir(cfg, adapter: str | None, root: Path = MERGED_DIR) -> str:
     """The checkpoint for `adapter` on `cfg`'s base model: the base model's Hub id
     when there is no adapter (mlx_lm loads it directly), else a merged copy under
     models/mlx/, built once and reused. Keyed by the adapter's weights, so a
-    retrained adapter under the same repo name gets a fresh merge."""
+    retrained adapter under the same repo name gets a fresh merge, and named by
+    the base model, not the config: configs that differ only in simulator or
+    catalog (qwen3b, nemotron35/qwen3b) share one merge."""
     if adapter is None:
         return cfg.model.base_model
     from src.generate import _resolve_adapter
@@ -206,7 +208,7 @@ def merged_model_dir(cfg, adapter: str | None, root: Path = MERGED_DIR) -> str:
     src = Path(_resolve_adapter(adapter) or adapter)
     weights = src / "adapter_model.safetensors"
     digest = hashlib.sha256(weights.read_bytes()).hexdigest()
-    out = root / f"{cfg.name}-{digest[:12]}"
+    out = root / f"{cfg.model.base_model.split('/')[-1]}-{digest[:12]}"
     if not (out / "merge.json").exists():
         merge_adapter(cfg.model.base_model, src, out)
         (out / "merge.json").write_text(
