@@ -283,7 +283,9 @@ def train(
     if hub_repo:
         _pull_hub_checkpoints_steps(hub_repo, out_dir)
     if (ckpt := _latest_step_checkpoint(out_dir)) is not None:
-        state = torch.load(ckpt / "trainer_state.pt", map_location=device, weights_only=False)
+        # cpu: load_state_dict moves Adam moments to each param's device but leaves `step` where
+        # it was loaded, which breaks the optimizer when --shard puts params on cuda:1
+        state = torch.load(ckpt / "trainer_state.pt", map_location="cpu", weights_only=False)
         if state.get("config_fingerprint") != cfg.fingerprint():
             raise InvariantViolation(
                 f"{ckpt.name} was saved by another config "

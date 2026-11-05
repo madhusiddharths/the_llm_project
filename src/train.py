@@ -373,7 +373,9 @@ def train(
         _pull_hub_checkpoints(hub_repo, out_dir)
     if (ckpt := _latest_checkpoint(out_dir)) is not None:
         set_peft_model_state_dict(model, load_file(str(ckpt / "adapter_model.safetensors")))
-        state = torch.load(ckpt / "trainer_state.pt", map_location=device, weights_only=False)
+        # cpu: load_state_dict moves Adam moments to each param's device but leaves `step` where
+        # it was loaded, which breaks the optimizer when --shard puts params on cuda:1
+        state = torch.load(ckpt / "trainer_state.pt", map_location="cpu", weights_only=False)
         opt.load_state_dict(state["optimizer"])
         sched.load_state_dict(state["scheduler"])
         scaler.load_state_dict(state["scaler"])

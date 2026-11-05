@@ -183,9 +183,10 @@ def eval_free_command(
 
 
 def adapter_on_hub(repo: str) -> bool:
-    from huggingface_hub import repo_exists
+    """The final adapter, not just the repo: a GRPO run pushes checkpoints/ first."""
+    from huggingface_hub import file_exists, repo_exists
 
-    return repo_exists(repo)
+    return repo_exists(repo) and file_exists(repo, "adapter_model.safetensors")
 
 
 def run_cells(
