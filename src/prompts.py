@@ -164,6 +164,17 @@ def render_call(call: ToolCall) -> str:
     return f'<tool_call>\n{{"name": {json.dumps(call.name, ensure_ascii=False)}, "arguments": {arguments}}}\n</tool_call>'
 
 
+def guided_regex(tool_names: Sequence[str]) -> str:
+    """Stage F3: the pattern guided decoding holds a completion to. Either a
+    reply (any text that does not open with "<"), or one or more render_call
+    blocks whose name is one of `tool_names` and whose arguments are a one-line
+    JSON object, as render_call writes them. Plain groups and (.|\\n) only, so
+    the pattern stays inside what vLLM's structured-output backends accept."""
+    names = "|".join(re.escape(json.dumps(n, ensure_ascii=False)) for n in tool_names)
+    call = '<tool_call>\\n\\{"name": (' + names + '), "arguments": \\{[^\\n]*\\}\\}\\n</tool_call>'
+    return f"({call}(\\n{call})*)|([^<](.|\\n)*)"
+
+
 def render_action(action: Action) -> str:
     """An assistant turn's content, without the turn markers."""
     if action.kind == "reply":

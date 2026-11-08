@@ -40,7 +40,6 @@ the functions that need them (tests/test_core_is_light.py).
 
 from __future__ import annotations
 
-import hashlib
 import json
 import threading
 import time
@@ -203,11 +202,11 @@ def merged_model_dir(cfg, adapter: str | None, root: Path = MERGED_DIR) -> str:
     catalog (qwen3b, nemotron35/qwen3b) share one merge."""
     if adapter is None:
         return cfg.model.base_model
-    from src.generate import _resolve_adapter
+    from src.hashing import hash_file
+    from src.registry import resolve_adapter
 
-    src = Path(_resolve_adapter(adapter) or adapter)
-    weights = src / "adapter_model.safetensors"
-    digest = hashlib.sha256(weights.read_bytes()).hexdigest()
+    src = Path(resolve_adapter(adapter))
+    digest = hash_file(src / "adapter_model.safetensors")
     out = root / f"{cfg.model.base_model.split('/')[-1]}-{digest[:12]}"
     if not (out / "merge.json").exists():
         merge_adapter(cfg.model.base_model, src, out)

@@ -321,6 +321,15 @@ def load_catalog(cfg: ExperimentConfig, size: int) -> list[dict[str, Any]]:
     return tools
 
 
+def guided_regex_for(cfg: ExperimentConfig, size: int) -> str:
+    """Stage F3's guided-decoding pattern for catalog `size` (prompts.guided_regex
+    over its tool names): one place, so the accuracy runs (generate.py) and the
+    latency runs (serve_bench.py) constrain to the same thing."""
+    from src.prompts import guided_regex
+
+    return guided_regex([t["function"]["name"] for t in load_catalog(cfg, size)])
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Tool catalogs and the system prompt")
     parser.add_argument("command", choices=["snapshot", "build"])

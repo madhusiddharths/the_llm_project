@@ -108,7 +108,7 @@ from src.invariants import InvariantViolation, check_all
 from src.logprobs import StepConfidence
 from src.prompts import Parsed, parse_completion, serialize_state, template_hash
 from src.router_node import Route, should_escalate
-from src.serving import SERVER_PORT, StudentClient, server_command, wait_ready
+from src.serving import SERVER_PORT, StudentClient, server_command, stop_server, wait_ready
 from src.trajectories import DEGENERATE_USER_CHARS
 
 EMPTY_REPLY = "[empty response]"
@@ -239,10 +239,10 @@ class VLLMPolicy:
     def __init__(self, cfg, adapter: str | None, max_model_len: int):
         from vllm import LLM, SamplingParams
 
-        from src.generate import _resolve_adapter
         from src.prompts import IM_END
+        from src.registry import resolve_adapter
 
-        path = _resolve_adapter(adapter)
+        path = resolve_adapter(adapter)
         self.llm = LLM(
             model=cfg.model.base_model,
             dtype="half",
@@ -342,11 +342,11 @@ class ServerPolicy:
         import atexit
         import subprocess
 
-        from src.generate import _resolve_adapter
+        from src.registry import resolve_adapter
 
         url = f"http://127.0.0.1:{port}"
         self.client = StudentClient.for_model(cfg, url, max_model_len)
-        cmd = server_command(cfg, _resolve_adapter(adapter), max_model_len, port, logprobs)
+        cmd = server_command(cfg, resolve_adapter(adapter), max_model_len, port, logprobs)
         print(f"[eval_free] starting vLLM server: {' '.join(cmd)}")
         self.proc = subprocess.Popen(cmd)
         atexit.register(self.close)
@@ -358,12 +358,7 @@ class ServerPolicy:
         print("[eval_free] vLLM server ready")
 
     def close(self) -> None:
-        if self.proc.poll() is None:
-            self.proc.terminate()
-            try:
-                self.proc.wait(timeout=30)
-            except Exception:
-                self.proc.kill()
+        stop_server(self.proc)
 
     def fits(self, prompt: str) -> bool:
         return self.client.fits(prompt)

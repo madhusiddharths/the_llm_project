@@ -1,0 +1,2153 @@
+{
+ "format_version": 1,
+ "files": {
+  ".gitattributes": {
+   "size": 2504,
+   "blob_id": "bed0738c7eeb449bca98b5d2f33c89a1ee56349a"
+  },
+  "completions/completions-qwen05b-sft-c16.jsonl": {
+   "size": 637900,
+   "blob_id": "13c87caec3f64b116b69fee91eca98599feebc85"
+  },
+  "completions/completions-qwen05b-sft-c16.meta.json": {
+   "size": 521,
+   "blob_id": "14e4d72f4c8691db2d33f3c6a5c6e714cc906d94"
+  },
+  "completions/completions-qwen05b-sft-c40.jsonl": {
+   "size": 746152,
+   "blob_id": "9d5cdbb7df7707ef9728a097c472c258ecdeb261"
+  },
+  "completions/completions-qwen05b-sft-c40.meta.json": {
+   "size": 521,
+   "blob_id": "b08f1cf8869a59b6d366e655d6272f3e5912b265"
+  },
+  "completions/completions-qwen05b-sft-c80.jsonl": {
+   "size": 879952,
+   "blob_id": "1921e415663b573ce36e38546e34f5b851c261d2"
+  },
+  "completions/completions-qwen05b-sft-c80.meta.json": {
+   "size": 521,
+   "blob_id": "7c6e647264af3c2c3ed79e40e6bbaae1566584a8"
+  },
+  "completions/completions-qwen05b-zeroshot-c16.jsonl": {
+   "size": 667723,
+   "blob_id": "87434e201c531624970ccdf34f85f17115e5c1bf"
+  },
+  "completions/completions-qwen05b-zeroshot-c16.meta.json": {
+   "size": 482,
+   "blob_id": "8d76bafcee17b5eb2431004c5a6d01d817aa8d9e"
+  },
+  "completions/completions-qwen05b-zeroshot-c40.jsonl": {
+   "size": 678376,
+   "blob_id": "6583eda49d2f784e798cd1152818a93a2a0a6cde"
+  },
+  "completions/completions-qwen05b-zeroshot-c40.meta.json": {
+   "size": 483,
+   "blob_id": "1b6363e97aa586223104223e67a07e8bcd63d40e"
+  },
+  "completions/completions-qwen05b-zeroshot-c80.jsonl": {
+   "size": 829231,
+   "blob_id": "fafde74dfcedb1cfcd45831a4e3aa122f245bb4e"
+  },
+  "completions/completions-qwen05b-zeroshot-c80.meta.json": {
+   "size": 483,
+   "blob_id": "f773a0a7f6a9b1ef9ff56ea610b682a7d787cd88"
+  },
+  "completions/completions-qwen15b-sft-c16.jsonl": {
+   "size": 663283,
+   "blob_id": "7df9c43e86fd47366c876e4fa2e25a295a95fd2a"
+  },
+  "completions/completions-qwen15b-sft-c16.meta.json": {
+   "size": 521,
+   "blob_id": "685a26d775ed2a374064f82d7d89ad19779c6493"
+  },
+  "completions/completions-qwen15b-sft-c40.jsonl": {
+   "size": 734343,
+   "blob_id": "111ffec8764ae02495be0b3bc28a37ed32f0766d"
+  },
+  "completions/completions-qwen15b-sft-c40.meta.json": {
+   "size": 521,
+   "blob_id": "577cb0a7c7cbb9cbdafe0349eef30e1e8c61404d"
+  },
+  "completions/completions-qwen15b-sft-c80-logprobs.jsonl": {
+   "size": 6559012,
+   "blob_id": "a774446201fe103666cdce4b6383d5f020e0db5c"
+  },
+  "completions/completions-qwen15b-sft-c80-logprobs.meta.json": {
+   "size": 541,
+   "blob_id": "4b3d07d7c009fbefc4652c708baf86f307306501"
+  },
+  "completions/completions-qwen15b-sft-c80.jsonl": {
+   "size": 737100,
+   "blob_id": "777b654f7a749803f97d267d4102726468da2c17"
+  },
+  "completions/completions-qwen15b-sft-c80.meta.json": {
+   "size": 521,
+   "blob_id": "d696e39e4de94de840c0e027ecf69a243d530593"
+  },
+  "completions/completions-qwen15b-sft-f25-c16.jsonl": {
+   "size": 449673,
+   "blob_id": "d87fa833853d34637c40ae81889b1536e6fea779"
+  },
+  "completions/completions-qwen15b-sft-f25-c16.meta.json": {
+   "size": 564,
+   "blob_id": "9500fc8135771a1c29bba75e15124feea5773e97"
+  },
+  "completions/completions-qwen15b-sft-f25-c40.jsonl": {
+   "size": 491746,
+   "blob_id": "73a932fa07019d92454aa3b0e37213bdd63404bb"
+  },
+  "completions/completions-qwen15b-sft-f25-c40.meta.json": {
+   "size": 564,
+   "blob_id": "40f0a9067632fd4ebb0c3ccdfbbc996a20699496"
+  },
+  "completions/completions-qwen15b-sft-f25-c80.jsonl": {
+   "size": 504674,
+   "blob_id": "4a60d306c00f87cb8e9b27fa2284732a606ddb1d"
+  },
+  "completions/completions-qwen15b-sft-f25-c80.meta.json": {
+   "size": 564,
+   "blob_id": "ed9b69f6baab4c6e2765b45b843138ad58059bc4"
+  },
+  "completions/completions-qwen15b-sft-f50-c16.jsonl": {
+   "size": 935950,
+   "blob_id": "9a0d69838467d54bd8c5bbc04edeecec4800279a"
+  },
+  "completions/completions-qwen15b-sft-f50-c16.meta.json": {
+   "size": 564,
+   "blob_id": "551f39bd7bd07b153c9281b1fe2e482364c74979"
+  },
+  "completions/completions-qwen15b-sft-f50-c40.jsonl": {
+   "size": 1083149,
+   "blob_id": "b7359f13f520c9388524a89d7104704a2efed852"
+  },
+  "completions/completions-qwen15b-sft-f50-c40.meta.json": {
+   "size": 564,
+   "blob_id": "3e498c02dd27fc76a5a2b267b42cb61a4056650b"
+  },
+  "completions/completions-qwen15b-sft-f50-c80.jsonl": {
+   "size": 1013587,
+   "blob_id": "7b2845201b6993b31ddaa611fbc74bef195b97b8"
+  },
+  "completions/completions-qwen15b-sft-f50-c80.meta.json": {
+   "size": 564,
+   "blob_id": "71c027179edc7dbdf4ab887d7344c36e50dd2617"
+  },
+  "completions/completions-qwen15b-zeroshot-c16-json.jsonl": {
+   "size": 750304,
+   "blob_id": "3a36c693007b13bac8b0fba28f3fa261ac08a545"
+  },
+  "completions/completions-qwen15b-zeroshot-c16-json.meta.json": {
+   "size": 488,
+   "blob_id": "fc6552e9bfd92622ac5308dc5a38c2909d6f1389"
+  },
+  "completions/completions-qwen15b-zeroshot-c16.jsonl": {
+   "size": 667490,
+   "blob_id": "1c50e100f2d056ae5f3a04bfe86f6ed341960e1e"
+  },
+  "completions/completions-qwen15b-zeroshot-c16.meta.json": {
+   "size": 483,
+   "blob_id": "fbedc1ad0aa8226132ca6c924c3765d34aaabff4"
+  },
+  "completions/completions-qwen15b-zeroshot-c40.jsonl": {
+   "size": 730401,
+   "blob_id": "ae69785debce028dc9e032b98ce63f6f4ac07483"
+  },
+  "completions/completions-qwen15b-zeroshot-c40.meta.json": {
+   "size": 483,
+   "blob_id": "4fa9b445cd8cf48ae8ae5b2cec9d7c03f0dd8f8a"
+  },
+  "completions/completions-qwen15b-zeroshot-c80.jsonl": {
+   "size": 719470,
+   "blob_id": "cedb7b99c19ccdb06d4402adb7d3469a84bd2c11"
+  },
+  "completions/completions-qwen15b-zeroshot-c80.meta.json": {
+   "size": 483,
+   "blob_id": "f9e19f8fbf1529437db6aa52f2ccd9bb0ac3ec33"
+  },
+  "completions/completions-qwen3b-sft-c16.jsonl": {
+   "size": 699557,
+   "blob_id": "08cda678e6ff6da28c9338b0ed3c6bfcdeac4535"
+  },
+  "completions/completions-qwen3b-sft-c16.meta.json": {
+   "size": 539,
+   "blob_id": "9e3b41e9d8e0c0c3831bc76350742e54ad40735a"
+  },
+  "completions/completions-qwen3b-sft-c40.jsonl": {
+   "size": 711593,
+   "blob_id": "474558ac378659dd4ba8395ee53278da3a9741b7"
+  },
+  "completions/completions-qwen3b-sft-c40.meta.json": {
+   "size": 539,
+   "blob_id": "33cb8f69c5a46325f5fc31036387e5fbae380dd1"
+  },
+  "completions/completions-qwen3b-sft-c80.jsonl": {
+   "size": 781747,
+   "blob_id": "c717f7918d75d175f07885a461fda37980bfb07a"
+  },
+  "completions/completions-qwen3b-sft-c80.meta.json": {
+   "size": 539,
+   "blob_id": "d1b25eb6bd457228f62bc61259a23457d912bf32"
+  },
+  "completions/completions-qwen3b-zeroshot-c16.jsonl": {
+   "size": 807545,
+   "blob_id": "99123db931a696dc548ff20dec29ebd85343db95"
+  },
+  "completions/completions-qwen3b-zeroshot-c16.meta.json": {
+   "size": 502,
+   "blob_id": "425279461e32da9941e4efff682e8b0b522ab77b"
+  },
+  "completions/completions-qwen3b-zeroshot-c40.jsonl": {
+   "size": 813683,
+   "blob_id": "2297bac3e3427a977434865d998b6c38639457b7"
+  },
+  "completions/completions-qwen3b-zeroshot-c40.meta.json": {
+   "size": 502,
+   "blob_id": "919029c51a3d454d243d9e23460598546428d461"
+  },
+  "completions/completions-qwen3b-zeroshot-c80.jsonl": {
+   "size": 834218,
+   "blob_id": "d0c0a3f96514b1c0311bd2e94e41504475d7de25"
+  },
+  "completions/completions-qwen3b-zeroshot-c80.meta.json": {
+   "size": 502,
+   "blob_id": "215b5312f10b36e0052a28414ddff240cf55ed9d"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261001T211058Z-batch000.json": {
+   "size": 94006,
+   "blob_id": "2c24f5264e3debe11e2509a820dbc8a32f716614"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261001T211058Z-batch001.json": {
+   "size": 121143,
+   "blob_id": "42abea67965370a7c3e5ff051ec40ad658bc08a1"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261001T211058Z-batch002.json": {
+   "size": 158910,
+   "blob_id": "9cac578668fa6404a3d5c0533c70324c0d6d9625"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261002T023019Z-batch000.json": {
+   "size": 1501853,
+   "blob_id": "f090791d10690fe67b8cec29cad6a20d1293c59b"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261002T023019Z-batch001.json": {
+   "size": 1487873,
+   "blob_id": "c7140e4c3e7e49e1a58342e18a0b9ed5d830f645"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261002T023019Z-batch002.json": {
+   "size": 1483540,
+   "blob_id": "e62ccf9491232c1ed06d9b031818836af753f271"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261002T023019Z-batch003.json": {
+   "size": 1313746,
+   "blob_id": "8d546f34c84b12dee0409a75900435383eef361c"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep0-20261002T023019Z-batch004.json": {
+   "size": 1255360,
+   "blob_id": "ad52bff0256f6b98fac4a68015054fa71a4d555a"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261002T023019Z-batch000.json": {
+   "size": 1587789,
+   "blob_id": "7f70eb370214e705bff4104b18231fb402597d05"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261002T023019Z-batch001.json": {
+   "size": 1093368,
+   "blob_id": "aa31a86e7130d91460dfd2c9b49e9d7b01ed623a"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261002T023019Z-batch002.json": {
+   "size": 734444,
+   "blob_id": "79f8a10c6d936b3718039c693921c9cd0d1569d8"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261002T023019Z-batch003.json": {
+   "size": 658200,
+   "blob_id": "1b251398b266ca07ec549e8d4f8c6fa4b4009852"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261002T023019Z-batch004.json": {
+   "size": 351557,
+   "blob_id": "164609dd2cd1b1d41b7bd505699a98e830ed9e7f"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261003T160227Z-batch000.json": {
+   "size": 1943374,
+   "blob_id": "2433c8957423b28324cd204e6e9f75bd05d90d8a"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261003T160227Z-batch001.json": {
+   "size": 1392308,
+   "blob_id": "b2e7f9791e6ee48f5b99749b944e36ac271e2d5d"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep1-20261003T160227Z-batch002.json": {
+   "size": 189474,
+   "blob_id": "219cb58a19f5a22354ec2145fe4eea07ff5ed46e"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261002T023019Z-batch000.json": {
+   "size": 368945,
+   "blob_id": "a8f1f82602bbd5c275bfffc285deb6e52482fc43"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261002T023019Z-batch001.json": {
+   "size": 159105,
+   "blob_id": "e437f4dc91d96c429de784ee65471863242a80c8"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261002T023019Z-batch002.json": {
+   "size": 123646,
+   "blob_id": "761e28f20fe687fb8b640577f5d6be9f0e6b1bb5"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261002T023019Z-batch003.json": {
+   "size": 179556,
+   "blob_id": "872b6724e7ee5bb72974dc932d1388dcd4d7a5f3"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261003T160227Z-batch000.json": {
+   "size": 1664672,
+   "blob_id": "448e0d99cb4c2c0503ca1c58c0b8b6365dc287e7"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261003T160227Z-batch001.json": {
+   "size": 1620606,
+   "blob_id": "04513a35a4b63f13dcfa9987c58e98421ab45c6e"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261003T160227Z-batch002.json": {
+   "size": 1767464,
+   "blob_id": "471a980c00f5683f1a034cc9a37f5ea9ce915a5a"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261003T160227Z-batch003.json": {
+   "size": 1705859,
+   "blob_id": "86046a066f2f88f0a74fbbb5fa7854073cd1b335"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep2-20261003T160227Z-batch004.json": {
+   "size": 760474,
+   "blob_id": "b9e591ec6cfe34bdbb092c877d9a5523a7e78f69"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261003T160227Z-batch000.json": {
+   "size": 1637289,
+   "blob_id": "d022bf0d1f6a719f9fa75c8cc85033f7c8d9c302"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261003T160227Z-batch001.json": {
+   "size": 1663488,
+   "blob_id": "87d81920f15bf5b744d433b8c30c4ac546246c8c"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261003T160227Z-batch002.json": {
+   "size": 1540716,
+   "blob_id": "fa17ddbbb9c9be11bed99a9ea3255d6fe1e6e960"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261003T160227Z-batch003.json": {
+   "size": 1135471,
+   "blob_id": "00137b23caf73518b6d4f33537be75213dca440e"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261003T160227Z-batch004.json": {
+   "size": 997367,
+   "blob_id": "aabcee676c6de5f0df1216b833be58cb52f87253"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep3-20261004T173324Z-batch000.json": {
+   "size": 1167204,
+   "blob_id": "bc2df4128f4c1091b098e9532de11b222022da5f"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261003T160227Z-batch000.json": {
+   "size": 717716,
+   "blob_id": "a779e56f0b938b7bd8fdb367783c3b6e2361ac6e"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261003T160227Z-batch001.json": {
+   "size": 219107,
+   "blob_id": "fe591ce4679f60a5df20892e13b6d645fb581742"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261003T160227Z-batch002.json": {
+   "size": 176375,
+   "blob_id": "e035f2f84042cc472289dd81855f85623a3c10a7"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261003T160227Z-batch003.json": {
+   "size": 175001,
+   "blob_id": "763346b7dc4c3eb3abd7461b2cadb827345bb500"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261003T160227Z-batch004.json": {
+   "size": 97911,
+   "blob_id": "c99f4c93e48c573fe992e4d6d7a281da001ce06c"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261004T173324Z-batch000.json": {
+   "size": 1452706,
+   "blob_id": "2af846b95e76d256356f53f246f3850bb5db90c7"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261004T173324Z-batch001.json": {
+   "size": 1779683,
+   "blob_id": "961eb156f6d1504803813bc91277e73dad74091c"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261004T173324Z-batch002.json": {
+   "size": 1575855,
+   "blob_id": "30362ef13cf4fda93897175c19b2134d5e8c6e51"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261004T173324Z-batch003.json": {
+   "size": 1505243,
+   "blob_id": "0a546aa1b72f71ac190fc0f2d441ae05474bdf3b"
+  },
+  "data/trajectories/free-qwen05b-sft-c16/4ccc239346d8/rep4-20261004T173324Z-batch004.json": {
+   "size": 345705,
+   "blob_id": "112efc7dafcbfcd177483b8498df41d5b32c7b1b"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261008T024902Z-batch000.json": {
+   "size": 183802,
+   "blob_id": "51357557e1275476c0a049dc9e06bd866cb5f57e"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261008T024902Z-batch001.json": {
+   "size": 127062,
+   "blob_id": "4ad9d084bb777bd1b0cf41f201e5e8ad59def13f"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261008T024902Z-batch002.json": {
+   "size": 137206,
+   "blob_id": "321cff314c6040381659697072426c17ac4cb46b"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261008T024902Z-batch003.json": {
+   "size": 138141,
+   "blob_id": "f13a13f943e2e71d15267f35d15fedc722ba2db6"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261009T005703Z-batch000.json": {
+   "size": 2018921,
+   "blob_id": "f76013c8c349d50519d442a96fd77fb32e5d02d9"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261009T005703Z-batch001.json": {
+   "size": 1443905,
+   "blob_id": "971bab04776f3a1ca6d02ba660ec68347a0a60be"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261009T005703Z-batch002.json": {
+   "size": 1634776,
+   "blob_id": "111c2a82cbab43f6ba68c15ae3fc2f006f1c8999"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261009T005703Z-batch003.json": {
+   "size": 1399918,
+   "blob_id": "b8e20c296fe9f639773d8876d3f4313e63579b98"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep0-20261009T005703Z-batch004.json": {
+   "size": 1023769,
+   "blob_id": "8849609f0c275b82238840d84b143526a3198435"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261009T005703Z-batch000.json": {
+   "size": 1616191,
+   "blob_id": "99bede54e5c8bc10297edd947d7259a35617c07c"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261009T005703Z-batch001.json": {
+   "size": 1474514,
+   "blob_id": "1e731f8f52cee3797c1feae5dfd5aeea11a242a5"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261009T005703Z-batch002.json": {
+   "size": 1758054,
+   "blob_id": "ed0ef9d25fb51bd450c21f03ab88711638aeafba"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261009T005703Z-batch003.json": {
+   "size": 835655,
+   "blob_id": "af56f2d2da3e4acd5d3f9435480c47bb955c10c1"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261009T005703Z-batch004.json": {
+   "size": 692376,
+   "blob_id": "90b2822397fd18eb67d30f4fec94f4012f2f1eb0"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261010T033500Z-batch000.json": {
+   "size": 1519790,
+   "blob_id": "53790cffa4cce7fdbedb0852ec33a0ee7efb736c"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep1-20261010T033500Z-batch001.json": {
+   "size": 153421,
+   "blob_id": "02e37bb038e19b9696689683a2e95d5c43f45e1a"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261009T005703Z-batch000.json": {
+   "size": 352754,
+   "blob_id": "e3ae0cadd2b0d154d8a764df024a68de2dc804f9"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261009T005703Z-batch001.json": {
+   "size": 167361,
+   "blob_id": "574a8f53f7fc5b59647b711d121bfcb289fae8d4"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261009T005703Z-batch002.json": {
+   "size": 123218,
+   "blob_id": "2f98777506314facb6ac7358b3707bc24129aec1"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261009T005703Z-batch003.json": {
+   "size": 138040,
+   "blob_id": "c8d111d60968972dd295731b958b824a2cac5ea3"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261009T005703Z-batch004.json": {
+   "size": 200918,
+   "blob_id": "78095561f24d3434f89b69606ec1a808566e1dd8"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261010T033500Z-batch000.json": {
+   "size": 1329248,
+   "blob_id": "17e3b20f5067bed1b9cb87f7f7cdc075c50a278a"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261010T033500Z-batch001.json": {
+   "size": 1758045,
+   "blob_id": "836f5760ed383a2f527ece541ce12e7abffe4a43"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261010T033500Z-batch002.json": {
+   "size": 1924489,
+   "blob_id": "c22dd207565c85a0ad1412cfebfa9f7fedc8c55e"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261010T033500Z-batch003.json": {
+   "size": 1636451,
+   "blob_id": "d1b5b5e155526b1ae6f0eb430c84f8f1faacdabc"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep2-20261010T033500Z-batch004.json": {
+   "size": 528090,
+   "blob_id": "a615b4c5ca41abf58b19b6b7aa6b8e21159fead9"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261010T033500Z-batch000.json": {
+   "size": 1813593,
+   "blob_id": "df20985ea2d211a43c3f492d8d0a79f1423029f8"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261010T033500Z-batch001.json": {
+   "size": 1723224,
+   "blob_id": "3d1a2acf4aeb083eb9472d5aa360141143694ac8"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261010T033500Z-batch002.json": {
+   "size": 1460014,
+   "blob_id": "039212786012ba23c658b7ca211a238fcd9e717e"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261010T033500Z-batch003.json": {
+   "size": 804442,
+   "blob_id": "42618fd04d1ba0e82b9c98ce73a3eb38fcbaa43f"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261010T033500Z-batch004.json": {
+   "size": 1357346,
+   "blob_id": "6333789cbfa57506dce2521f7e7039d4da42499f"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep3-20261011T034909Z-batch000.json": {
+   "size": 1801063,
+   "blob_id": "4dc057c20226dbfcd8f60fff24004a307b5b1a17"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261010T033500Z-batch000.json": {
+   "size": 425336,
+   "blob_id": "dc44cd022ef89a1ce787f916bd1ae585c5e23685"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261010T033500Z-batch001.json": {
+   "size": 277128,
+   "blob_id": "ca5bd1abd13172eda9bae8c2e2330cce8829d913"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261010T033500Z-batch002.json": {
+   "size": 294050,
+   "blob_id": "05d0c5b67bc7dce54814a674eeaa189d8e68929f"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261010T033500Z-batch003.json": {
+   "size": 133876,
+   "blob_id": "5ca2383139c03088ca3d6d393096c265722062a0"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261010T033500Z-batch004.json": {
+   "size": 205374,
+   "blob_id": "c7064ccbfeacac29f0de4ca584ca9c41d6a923e9"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261011T034909Z-batch000.json": {
+   "size": 1441809,
+   "blob_id": "0abcf874dd1a61ca354a60545342bfa3654cd31a"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261011T034909Z-batch001.json": {
+   "size": 1502691,
+   "blob_id": "daae2c4d02c27f011c445cec8fe60258870e0b56"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261011T034909Z-batch002.json": {
+   "size": 1863157,
+   "blob_id": "4a1f6f8240f1ad9dd80e773185355b59522a6a0e"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261011T034909Z-batch003.json": {
+   "size": 1683257,
+   "blob_id": "745712dfc066e81f939ef811400fcaed087cded8"
+  },
+  "data/trajectories/free-qwen05b-sft-c40/471fb7f0a765/rep4-20261011T034909Z-batch004.json": {
+   "size": 324420,
+   "blob_id": "16a989ba9d4e53f38e7fbceb81f4aaf2d5a8645f"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261003T171313Z-batch000.json": {
+   "size": 92561,
+   "blob_id": "e14688af9c5730cfe128778d7aa3dc91b5cd1a08"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261004T180537Z-batch000.json": {
+   "size": 1683840,
+   "blob_id": "5b2b029c76690eae994d5fd3f0cc928c6eae42a4"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261004T180537Z-batch001.json": {
+   "size": 1558435,
+   "blob_id": "18bbf6b00e27ae2fca9df25f71fd6e3099ff228a"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261004T180537Z-batch002.json": {
+   "size": 1537227,
+   "blob_id": "2ecf197154df5078a94f1014bc07977984341d48"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261004T180537Z-batch003.json": {
+   "size": 1696615,
+   "blob_id": "7c40ccb16c30199daa3de56b9a9f8bea8d63b362"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261004T180537Z-batch004.json": {
+   "size": 1221211,
+   "blob_id": "36e7db0b9a5334162631829b56e31efd197dfc4b"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep0-20261005T052032Z-batch000.json": {
+   "size": 272638,
+   "blob_id": "8c2547fc98989e1bc932712046dab4269c944fd6"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261004T180537Z-batch000.json": {
+   "size": 1072771,
+   "blob_id": "6819849b80c45b93a4d41f55ee468c76a7b8c9cb"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261004T180537Z-batch001.json": {
+   "size": 544311,
+   "blob_id": "a1b9fa302f920d9c7a3a7cd82de7fe6e471b94aa"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261004T180537Z-batch002.json": {
+   "size": 286888,
+   "blob_id": "12d51ea72d5b1f35b6fd3695fba2ba7d146e5e9a"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261004T180537Z-batch003.json": {
+   "size": 247265,
+   "blob_id": "cf236bbfe9f454a894f97d00bffe10f27ab37391"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261004T180537Z-batch004.json": {
+   "size": 132199,
+   "blob_id": "42c85fdc0f7dc7b41d5f067852d692ee29684e78"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261005T052032Z-batch000.json": {
+   "size": 1459400,
+   "blob_id": "6919cdc9c4a15823376f1d94b93943881fd15505"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261005T052032Z-batch001.json": {
+   "size": 1682538,
+   "blob_id": "cd206971525835b761f8f3a4613209e054630f11"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261005T052032Z-batch002.json": {
+   "size": 1422649,
+   "blob_id": "4542c9d24a74a3d59a1667a8407647a95df71953"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep1-20261005T052032Z-batch003.json": {
+   "size": 829371,
+   "blob_id": "e99c66bf4f1f1b4633a317c31cb160cac8c14faa"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261004T180537Z-batch000.json": {
+   "size": 125888,
+   "blob_id": "51ade587ae1abfdb03433641900f8f41d4d4dd2b"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261005T052032Z-batch000.json": {
+   "size": 1703181,
+   "blob_id": "5beff1e4a2ffa3f7484a92c8457687fdd8c2177c"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261005T052032Z-batch001.json": {
+   "size": 1921297,
+   "blob_id": "962a12d5331e4285c702ae3195e5a14a805a7064"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261005T052032Z-batch002.json": {
+   "size": 1643098,
+   "blob_id": "b068f05aff27ebcdb15a6c7139f7398464128f72"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261005T052032Z-batch003.json": {
+   "size": 1770534,
+   "blob_id": "e0c08fbccf637a9807331a656714bc7162545757"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep2-20261005T052032Z-batch004.json": {
+   "size": 1171214,
+   "blob_id": "d7714202ae00a317ca2a626e5c3b898e9e1dd943"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261005T052032Z-batch000.json": {
+   "size": 982239,
+   "blob_id": "fef1a85e17b22b9366d0a607cbe75cbbbed7bb9d"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261005T052032Z-batch001.json": {
+   "size": 814000,
+   "blob_id": "de54780919e4f5ccb290d227bea0bb200e8338b5"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261005T052032Z-batch002.json": {
+   "size": 386421,
+   "blob_id": "e7ef32ae00be843245282c98a79a76c058cf4283"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261005T052032Z-batch003.json": {
+   "size": 227816,
+   "blob_id": "7809adb681078d7ce59d6a8681b93307da26821b"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261005T052032Z-batch004.json": {
+   "size": 403155,
+   "blob_id": "987b76721ee141afe0b16f82e201e93ca731c3cf"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261006T042212Z-batch000.json": {
+   "size": 1292165,
+   "blob_id": "9a5ccbf1f3fdf1239a6d10ccda2f591542553332"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261006T042212Z-batch001.json": {
+   "size": 1515080,
+   "blob_id": "8f8e98265331f1d30281a593807583d8345e73a8"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261006T042212Z-batch002.json": {
+   "size": 1556444,
+   "blob_id": "651da31a376c44c0dcfca4d285d179a923379af6"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep3-20261006T042212Z-batch003.json": {
+   "size": 455389,
+   "blob_id": "174c28549c640d28ff11401e10d6f4c26d75c7df"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261005T052032Z-batch000.json": {
+   "size": 116193,
+   "blob_id": "82a53fb333c16d5f8f413c54b0fd04b824dc23c5"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261005T052032Z-batch001.json": {
+   "size": 221522,
+   "blob_id": "125c958fe7857dd4fc35a66c821f1745310f297f"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261006T042212Z-batch000.json": {
+   "size": 1701801,
+   "blob_id": "8eb31cf64a0c42dd76467e9755ca764beaa662c6"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261006T042212Z-batch001.json": {
+   "size": 1650696,
+   "blob_id": "99783dbf51bb01c231e1ccec9501f1050228c35a"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261006T042212Z-batch002.json": {
+   "size": 1463691,
+   "blob_id": "160de8284b90de4a561a1ce4efac2cfc40e49598"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261006T042212Z-batch003.json": {
+   "size": 1674170,
+   "blob_id": "2f932048f4259a2c212acf10fad96a8e1b8bc42b"
+  },
+  "data/trajectories/free-qwen05b-sft-c80/97ab409fdded/rep4-20261006T042212Z-batch004.json": {
+   "size": 1059926,
+   "blob_id": "3174608cc5d45347d09174b3fdf498997e0ce8de"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch000.json": {
+   "size": 627495,
+   "blob_id": "4c1982517686656f74f2dea751be8b5596ac98f0"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch001.json": {
+   "size": 555945,
+   "blob_id": "9ffc1c72803301743af6237673c902a85a9f2a6c"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch002.json": {
+   "size": 735798,
+   "blob_id": "0e4e1df3e71fbc558e8b9b280a52906e3fe12d28"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch003.json": {
+   "size": 440156,
+   "blob_id": "f7e3c1f13544be03817ee56e4e74b3884af3d345"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch004.json": {
+   "size": 445851,
+   "blob_id": "87a2e6f8a283520ea6f2a5770e29a066d8dc2ce8"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch005.json": {
+   "size": 530730,
+   "blob_id": "7f68eec2f1994620278866718bb5269c8282345f"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch006.json": {
+   "size": 491451,
+   "blob_id": "66ab622d01bdfe90b481f77fcb33f24349470162"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch007.json": {
+   "size": 322168,
+   "blob_id": "2fff6a205b8fff76eb54d0eeedd3bc0889ac3fe8"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch008.json": {
+   "size": 622759,
+   "blob_id": "b1bb9c823ca5c2503223d3146a72a425ce5c8523"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch009.json": {
+   "size": 378472,
+   "blob_id": "f88ac3fd230c7db54adbd8b14b92db5e6df915aa"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch010.json": {
+   "size": 568495,
+   "blob_id": "d953d53e13faa912a342fca8b15e8693e7e47e58"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch011.json": {
+   "size": 476380,
+   "blob_id": "081a4544832c9d109957e4cc1929cf6df1e4be2a"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch012.json": {
+   "size": 598613,
+   "blob_id": "9923a256feaee01cbdbaccd2d8ee553f63a7fe18"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch013.json": {
+   "size": 494508,
+   "blob_id": "a1156ac01b5c940df671264f8188f35907bf51e6"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep0-20260928T011730Z-batch014.json": {
+   "size": 430750,
+   "blob_id": "b5eff4a657c046622fffa3ee94811e616d6fdaf1"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch000.json": {
+   "size": 3756082,
+   "blob_id": "6290aec9f65cbbd1450fef68176277b57e33ce27"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch001.json": {
+   "size": 391748,
+   "blob_id": "d098c693d1d217f561c1cfdfaa6699959c58d473"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch002.json": {
+   "size": 649805,
+   "blob_id": "cf3409b0a1fae87df65824dfebbd4a6434859bee"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch003.json": {
+   "size": 367951,
+   "blob_id": "09024e7d859eabc43d900b84e0abf9640e2e92cc"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch004.json": {
+   "size": 604857,
+   "blob_id": "cdc6bba0068e75f8631ef4f6750183e85f501bb0"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch005.json": {
+   "size": 397943,
+   "blob_id": "203995782b5001fda8d0e6974954256d7a45e480"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch006.json": {
+   "size": 351873,
+   "blob_id": "8c570374f111f079774f90f68dd76b5bfd0aaea1"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch007.json": {
+   "size": 480974,
+   "blob_id": "80920a382d0e800e6353e25260d72100363ec834"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch008.json": {
+   "size": 426225,
+   "blob_id": "cc6ba5cc2c352e2c0b344a64a0c0b8a5e61b16ca"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch009.json": {
+   "size": 315982,
+   "blob_id": "f49735ffaf06b4d7d9b93d1898f37f90a59a10ca"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch010.json": {
+   "size": 480195,
+   "blob_id": "aa63073dca359d5cfa126ea4c20b28a3a169fec0"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch011.json": {
+   "size": 450414,
+   "blob_id": "9eca17ddf4eda59b0af4fb2ae556cf96f8171790"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch012.json": {
+   "size": 757170,
+   "blob_id": "2a12923c45c385b0bdb449de2264236459284be8"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch013.json": {
+   "size": 575352,
+   "blob_id": "f34673418994d5752a6ef7b49ad5b2085f1a30e9"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep1-20260928T011730Z-batch014.json": {
+   "size": 406711,
+   "blob_id": "7b8b314846eb72f912a37c771269b7ddcd4ce1b1"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch000.json": {
+   "size": 732136,
+   "blob_id": "bce94b493df8858c8a12e834c293dafeebaeca56"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch001.json": {
+   "size": 567981,
+   "blob_id": "6481457651860547ff5ddc9cee7d461c9ba86ca2"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch002.json": {
+   "size": 513274,
+   "blob_id": "6343bcdd5e8bd7f502bf0eb66393c20cec97989f"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch003.json": {
+   "size": 504318,
+   "blob_id": "6ed0fbe141bc390c31513cebf6e5201baf0eda88"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch004.json": {
+   "size": 348782,
+   "blob_id": "337d5935e3abff3b03b8163783e8c4092f50704e"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch005.json": {
+   "size": 762671,
+   "blob_id": "bd156f899fec813748e5b64cfcc80e6061d24b3c"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch006.json": {
+   "size": 464712,
+   "blob_id": "528602e1876e3c39b9f84a39fe7fec7fbddeb416"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch007.json": {
+   "size": 512384,
+   "blob_id": "8769e5b84483d02e1e56686cddf9677f83da01d2"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch008.json": {
+   "size": 581892,
+   "blob_id": "55b5f6f580df8ec63efe45ad0e2fc2a2bbe7d369"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch009.json": {
+   "size": 906603,
+   "blob_id": "8b23c6e45b95feae0ce7fc05b155a2155fd6e05d"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch010.json": {
+   "size": 387038,
+   "blob_id": "b53ae44e9c57454dba5a618c7976ac4a6229ff2d"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch011.json": {
+   "size": 175430,
+   "blob_id": "206d93d3369c906fc50939e255aad4ed89b60948"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch012.json": {
+   "size": 120433,
+   "blob_id": "ac1e987979e440e2c3ce1b59ef92b602bd4da64b"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch013.json": {
+   "size": 90987,
+   "blob_id": "fd4259d62bdba3ec8dbb4cccaf9c229aabc7281d"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260928T011730Z-batch014.json": {
+   "size": 66086,
+   "blob_id": "53784fef27aedd18b6efb4e312f08e6cb76317d5"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260929T004714Z-batch000.json": {
+   "size": 1641991,
+   "blob_id": "1ac2bc615f627f46e901e9d8ed8b77631d2821af"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep2-20260929T004714Z-batch001.json": {
+   "size": 297723,
+   "blob_id": "021ab5e206bbb7b7347e9038538713be98602ede"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260928T011730Z-batch000.json": {
+   "size": 154787,
+   "blob_id": "2a4fe54c4da6ba141e2df606e4bf0cbac99f30cf"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260929T004714Z-batch000.json": {
+   "size": 1707964,
+   "blob_id": "f3f7538f0b482fd102c3607a665f7eaa9da4b50b"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260929T004714Z-batch001.json": {
+   "size": 1329198,
+   "blob_id": "51445d0e2fdf486cc1ce0bb2094e5fab25932741"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260929T004714Z-batch002.json": {
+   "size": 1862717,
+   "blob_id": "a9928c70211eee586f8fbcc77e46e54fb980a857"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260929T004714Z-batch003.json": {
+   "size": 1843180,
+   "blob_id": "cc45b2495306969cf38d21d165fba3decc0b2357"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep3-20260929T004714Z-batch004.json": {
+   "size": 1592814,
+   "blob_id": "72401d18a09b2d34a78ed108acb13f9f0d101d03"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260929T004714Z-batch000.json": {
+   "size": 1883827,
+   "blob_id": "8c85ba9e6133a38d8aca72d71ac3713c7622b997"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260929T004714Z-batch001.json": {
+   "size": 1435207,
+   "blob_id": "11c5844877ad68b3e2be401f0f94e3f05c5df33a"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260929T004714Z-batch002.json": {
+   "size": 1613602,
+   "blob_id": "003d5b4f7af69195d3ff95d2a8437067328d65d6"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260929T004714Z-batch003.json": {
+   "size": 1696488,
+   "blob_id": "cff9f774cc9c5dd51c3fd97aac8fe128ae323db5"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260929T004714Z-batch004.json": {
+   "size": 1186333,
+   "blob_id": "7b04227be2dff7c2a90e4a8e973f9f2caa5ec6ac"
+  },
+  "data/trajectories/free-qwen15b-sft-c16/d850e2ae1ec5/rep4-20260930T030751Z-batch000.json": {
+   "size": 550092,
+   "blob_id": "43d5eecf1653683386cb0feaa797ec3ae5944f65"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261006T060047Z-batch000.json": {
+   "size": 1885028,
+   "blob_id": "c7c4db7a5f0addaafd709e4cd6ab1c8d7b1b8f0c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261006T060047Z-batch001.json": {
+   "size": 1080680,
+   "blob_id": "13a94c4c4a205269baa244d6fa25a84401f784b1"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261006T060047Z-batch002.json": {
+   "size": 589969,
+   "blob_id": "43ed31b8973bf4971f21cb20e0685abb407e1ae1"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261006T060047Z-batch003.json": {
+   "size": 574549,
+   "blob_id": "62924ecbd54626119ae37eea1071c74d26841066"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261006T060047Z-batch004.json": {
+   "size": 330045,
+   "blob_id": "4531fead9dcb98da847e920b15203a9997875322"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261007T041613Z-batch000.json": {
+   "size": 1640515,
+   "blob_id": "42950b5dde5ce5cd7ac026e18c88bfa009623c2e"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261007T041613Z-batch001.json": {
+   "size": 1618388,
+   "blob_id": "4230c78d8de6b695f55029e10d94d0ebce83a966"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep0-20261007T041613Z-batch002.json": {
+   "size": 911403,
+   "blob_id": "4a2d3bff409c8bcb8a2df2e77ecb3a9aae23e300"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261006T060047Z-batch000.json": {
+   "size": 154706,
+   "blob_id": "67682402b608aaf8705cd9f40d3d6c3432fc018c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261006T060047Z-batch001.json": {
+   "size": 233880,
+   "blob_id": "977333cf9edd70528d5eb0952978fb3d35759cd3"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261007T041613Z-batch000.json": {
+   "size": 1970882,
+   "blob_id": "5550ba59dc263cc2c679306e98a196cd9eb63dd7"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261007T041613Z-batch001.json": {
+   "size": 1632204,
+   "blob_id": "11b98b2dce05c479b1809ed15c02d097ab73050c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261007T041613Z-batch002.json": {
+   "size": 1525598,
+   "blob_id": "fa626d3ac0e0d217350490d694d051c05d0b1f4d"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261007T041613Z-batch003.json": {
+   "size": 1955422,
+   "blob_id": "c64f4555ad628bb882ab5a5488daac87371afa8b"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep1-20261007T041613Z-batch004.json": {
+   "size": 1402511,
+   "blob_id": "fc7fe33cfbe4a903298b90b19421cd6d31794593"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261007T041613Z-batch000.json": {
+   "size": 1835068,
+   "blob_id": "906050aa2998a3c0846a5762a3d0ad7c4d0af2b3"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261007T041613Z-batch001.json": {
+   "size": 1222534,
+   "blob_id": "459e636a6afdb4ffa51170847a5eb048a2be09c1"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261007T041613Z-batch002.json": {
+   "size": 641485,
+   "blob_id": "eb388d8c2b95e1445a06e92baea87d10eaba649c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261007T041613Z-batch003.json": {
+   "size": 398945,
+   "blob_id": "9a44813c67b422b5c0345eb37337a640bb9321d8"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261007T041613Z-batch004.json": {
+   "size": 334399,
+   "blob_id": "1a766fcc182c53e8a5c4a3dd301b9cd401264c29"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261008T011425Z-batch000.json": {
+   "size": 1542422,
+   "blob_id": "35a82b939c35dfde3adb164baa256877c5ae3182"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261008T011425Z-batch001.json": {
+   "size": 1338118,
+   "blob_id": "0f3f0beb5550b6f386d357bf5b7011d8b26efb7e"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep2-20261008T011425Z-batch002.json": {
+   "size": 479167,
+   "blob_id": "91866d9a8ab418a15d54f0497c1c5eee2a081ab9"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261007T041613Z-batch000.json": {
+   "size": 200763,
+   "blob_id": "247313616d3655b141837c2cde8b18b2fb53538c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261007T041613Z-batch001.json": {
+   "size": 154962,
+   "blob_id": "b4d19b3ccd4e5164958c088e8e79bd5b24c6498b"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261007T041613Z-batch002.json": {
+   "size": 93026,
+   "blob_id": "afda1fdf3f416c7ae61a75e7aefee2374b6849c3"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261008T011425Z-batch000.json": {
+   "size": 1539887,
+   "blob_id": "b5eae6e967efa16b6e28cf1f54169486ac24dcd8"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261008T011425Z-batch001.json": {
+   "size": 1408220,
+   "blob_id": "1a8df29765ad8b17638592d78e5a93233eda2884"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261008T011425Z-batch002.json": {
+   "size": 1282642,
+   "blob_id": "3b60b3be38b96231957baff48fe52f15c7e0c77c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261008T011425Z-batch003.json": {
+   "size": 1736223,
+   "blob_id": "c46e4e0154519f4bd56381d71c3199aabee34b35"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep3-20261008T011425Z-batch004.json": {
+   "size": 992632,
+   "blob_id": "6f5d01e88ff919b5552fdb42e4141a90ed67f719"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261008T011425Z-batch000.json": {
+   "size": 1785380,
+   "blob_id": "b446b6a680ac1f98806a0ef41fa727f81263b2bb"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261008T011425Z-batch001.json": {
+   "size": 1657941,
+   "blob_id": "6fe1b217762cb994ac844de11bc88809cd37574e"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261008T011425Z-batch002.json": {
+   "size": 1256727,
+   "blob_id": "628f039041379afcc200fd37b0e776b8a5828e2c"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261008T011425Z-batch003.json": {
+   "size": 669263,
+   "blob_id": "af1e377dd1d04dbd57469087443005dcb3ef1b17"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261008T011425Z-batch004.json": {
+   "size": 647251,
+   "blob_id": "e4606866af80c1886b780246e9b37e2e478a8199"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261009T003604Z-batch000.json": {
+   "size": 1377218,
+   "blob_id": "5a4735f2ce91a2e5dcb179cc03a57ac948250288"
+  },
+  "data/trajectories/free-qwen15b-sft-c40/860e845e2bcc/rep4-20261009T003604Z-batch001.json": {
+   "size": 965405,
+   "blob_id": "ea1ab812434f28f8a829d10ba25e48c838f5ad38"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260929T025029Z-batch000.json": {
+   "size": 820130,
+   "blob_id": "62fb627a6ed34cff3404462ae12fcebaff2a3359"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260929T025029Z-batch001.json": {
+   "size": 447102,
+   "blob_id": "58be8658b4c3426a01384f7430fbc38849a0c5c5"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260929T025029Z-batch002.json": {
+   "size": 353080,
+   "blob_id": "3e442363399a3db4bcac6d3d6077172a4c578519"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260929T025029Z-batch003.json": {
+   "size": 69104,
+   "blob_id": "3a4293fdda326c768ed4d12f0dd64a28fc96a42a"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260929T025029Z-batch004.json": {
+   "size": 86941,
+   "blob_id": "55b10d9e66ff8b50184844bbbb051fb604a32bd3"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260930T031412Z-batch000.json": {
+   "size": 1831659,
+   "blob_id": "f2a58e3195e459d3e268af231bcb5ed6a9e9478b"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260930T031412Z-batch001.json": {
+   "size": 1723071,
+   "blob_id": "178a496f367edcefdad4709f6802f6c7ae93a97a"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260930T031412Z-batch002.json": {
+   "size": 1435064,
+   "blob_id": "d0537aa1dd1185676446fc2adc2b76e00a9b9d08"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep0-20260930T031412Z-batch003.json": {
+   "size": 1327594,
+   "blob_id": "dfc3bb47560e6f94c18b3d9bc0f131c556b97508"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260929T025029Z-batch000.json": {
+   "size": 77781,
+   "blob_id": "75be4724f5f28675e74332c9d57687582afb3948"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260929T025029Z-batch001.json": {
+   "size": 169754,
+   "blob_id": "5f556b1a8e32e2bf55145de984e1702ab15d0cad"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260930T031412Z-batch000.json": {
+   "size": 2063933,
+   "blob_id": "58c89e1a8a94e1e67e6cc189dcf7f101710cc916"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260930T031412Z-batch001.json": {
+   "size": 1673491,
+   "blob_id": "bba18fc558bd4bc89546fd4b88f29cd7c987a811"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260930T031412Z-batch002.json": {
+   "size": 1742770,
+   "blob_id": "e0c5bf1c2acc8e5a9dfb80cae76059fa2cb6cd13"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260930T031412Z-batch003.json": {
+   "size": 1602897,
+   "blob_id": "21ca50ff991ab48d9167a1b93a785308518c2641"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep1-20260930T031412Z-batch004.json": {
+   "size": 1519920,
+   "blob_id": "c9401356deabb3af0348d8b6eea5b08e0badccc5"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20260930T031412Z-batch000.json": {
+   "size": 911335,
+   "blob_id": "32738981fa84a9ac54f8b48ced440e3da3dbb701"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20260930T031412Z-batch001.json": {
+   "size": 327472,
+   "blob_id": "bb46c2b2cdbb712f994e888f1b73caa912a17abb"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20260930T031412Z-batch002.json": {
+   "size": 427056,
+   "blob_id": "439c81b0e191bdf9055d3a7f3a896b91606fe6a3"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20260930T031412Z-batch003.json": {
+   "size": 67754,
+   "blob_id": "b35e8fd6f1541004b6a624b078a4fcff3b6a6da9"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20260930T031412Z-batch004.json": {
+   "size": 281282,
+   "blob_id": "9eca410845aaa84fb512d62200d7e6837f01e3ff"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20261001T191859Z-batch000.json": {
+   "size": 1494783,
+   "blob_id": "ec99b064b8a95e4cdccbd97db3f9a897c62b1afc"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20261001T191859Z-batch001.json": {
+   "size": 1716991,
+   "blob_id": "8dd48b3b2928c8aeda95706c788bd1cd46753dc0"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20261001T191859Z-batch002.json": {
+   "size": 1584118,
+   "blob_id": "7edd1da97de4c6a23bdb631dced8d4e103aa4ccb"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep2-20261001T191859Z-batch003.json": {
+   "size": 1504449,
+   "blob_id": "5a9baf99098f37241a480a46af605d83e53d270b"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20260930T031412Z-batch000.json": {
+   "size": 93030,
+   "blob_id": "61f2ba2250a07a794e04f4b8e6861123c4e8e3fa"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261001T191859Z-batch000.json": {
+   "size": 1948387,
+   "blob_id": "e69c6403a351c436ba1ddfe6e37ca3ac1dd23951"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261001T191859Z-batch001.json": {
+   "size": 1521107,
+   "blob_id": "7b3424beb6677485d2a57c88f27ea70ec0cfb40f"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261001T191859Z-batch002.json": {
+   "size": 1865925,
+   "blob_id": "4918a835daab573b289da98c41aeee325a53d7a3"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261001T191859Z-batch003.json": {
+   "size": 1753223,
+   "blob_id": "80281b969cb9d4c32341ea7b6a144646bba9b07a"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261001T191859Z-batch004.json": {
+   "size": 1306504,
+   "blob_id": "12381b17b2c9c14280467eb2378833634a6f9e32"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep3-20261002T015118Z-batch000.json": {
+   "size": 112643,
+   "blob_id": "b2da649545043049959f1c1735cbb19715aec269"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261001T191859Z-batch000.json": {
+   "size": 1126787,
+   "blob_id": "88ab200ac3953c8e7915b14e74e70ab9e9f44b76"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261001T191859Z-batch001.json": {
+   "size": 652654,
+   "blob_id": "e44416a850aa40fed5465509582620b4bfb25926"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261001T191859Z-batch002.json": {
+   "size": 329753,
+   "blob_id": "310f0696d6d402935f1f9c2af80df83ab5d11b07"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261001T191859Z-batch003.json": {
+   "size": 97152,
+   "blob_id": "c50e1731abf5c4a12f1edb79624b053da5398718"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261001T191859Z-batch004.json": {
+   "size": 61958,
+   "blob_id": "3ef12e7f92bc344b9396b17d1e91a03ad70df5aa"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261002T015118Z-batch000.json": {
+   "size": 1559683,
+   "blob_id": "63c8c27ed88bef61b9bcad4e365003f719cf0b62"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261002T015118Z-batch001.json": {
+   "size": 1661459,
+   "blob_id": "7e9206525e7313d41bcac0d5c7ae250638a9424c"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261002T015118Z-batch002.json": {
+   "size": 1622618,
+   "blob_id": "cc55371a49ab10005d4ddc468e892e2e57619129"
+  },
+  "data/trajectories/free-qwen15b-sft-c80/db76e7ba7928/rep4-20261002T015118Z-batch003.json": {
+   "size": 1454019,
+   "blob_id": "cd8da91a65bf5c289cdb434f639bd550c01763b7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch000.json": {
+   "size": 518310,
+   "blob_id": "2777ea89bd10ea7342cc792c5bf0133b2ebf2314"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch001.json": {
+   "size": 448367,
+   "blob_id": "d1cbde4ca51d845a9ba55da3abfdb523500e7696"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch002.json": {
+   "size": 486470,
+   "blob_id": "aa3d85725afbd6dddecfabcdf7fe5608d9e279ad"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch003.json": {
+   "size": 483407,
+   "blob_id": "f15db72cc10177410befa0aef41cc5e5f3aa1901"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch004.json": {
+   "size": 459833,
+   "blob_id": "187f93f44210a94f9b42b736e322237b125fae33"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch005.json": {
+   "size": 503149,
+   "blob_id": "d84280340ab95c85ead25d0f72cef237705176ec"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch006.json": {
+   "size": 591036,
+   "blob_id": "a648eba77022402d73db1614cf4c9b97f1aa19b7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch007.json": {
+   "size": 574526,
+   "blob_id": "1327d235fbfa9cb4c6a27609c5b763158100d974"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch008.json": {
+   "size": 575884,
+   "blob_id": "716836644d6bfba09201743c26ee18867f337ae7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep0-20261101T150609Z-batch009.json": {
+   "size": 626458,
+   "blob_id": "219e10c8db6874a1ba59dbe0a23e91b7396c8b44"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch000.json": {
+   "size": 427971,
+   "blob_id": "a9186372e0c297b65baa4af6047284ca42b61e12"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch001.json": {
+   "size": 547945,
+   "blob_id": "15612d20d7641b527a44eaf0c0b48f3ee25d0f0f"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch002.json": {
+   "size": 424090,
+   "blob_id": "f2f4ed3370fdc55e086cfe995dc1512600fa0fd9"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch003.json": {
+   "size": 551810,
+   "blob_id": "812a5c6139a8e5f51d1a7954ea9035bceb3c04db"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch004.json": {
+   "size": 496125,
+   "blob_id": "4abc5f3cd36a4b8ce2bda0ff75d6f44d784bdd8c"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch005.json": {
+   "size": 586217,
+   "blob_id": "af6bc912ac349e7afb4ee8dd5e99dae8dbdd293d"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch006.json": {
+   "size": 562377,
+   "blob_id": "0b0e21b6c1afb10940664dbadfc13a612ea9a640"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch007.json": {
+   "size": 562332,
+   "blob_id": "2393ba9302aba9251a2cf34c0a95b6947b012c3c"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch008.json": {
+   "size": 611551,
+   "blob_id": "b5fd15406de12a6f946defe0bac808cb8bb7f510"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep1-20261101T150609Z-batch009.json": {
+   "size": 543845,
+   "blob_id": "79ab2037579f3e4f96df5168681b0a331a42bfc9"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch000.json": {
+   "size": 508441,
+   "blob_id": "25cac0a6b46d9ece89c39d53914ddeb753d70e27"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch001.json": {
+   "size": 571587,
+   "blob_id": "ad53b23c07d47c9b8ed4706d3592654800015a57"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch002.json": {
+   "size": 395400,
+   "blob_id": "19dce506b8029183ed35d1ef13bc818939662322"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch003.json": {
+   "size": 455212,
+   "blob_id": "63cf593f5ddf902890602f0c01d3edf183496828"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch004.json": {
+   "size": 499912,
+   "blob_id": "c49bba3b0b9daf313ce732c97afa176fd9ee2c4f"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch005.json": {
+   "size": 552397,
+   "blob_id": "61b691ce91df646146ffb162440a485634777370"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch006.json": {
+   "size": 591461,
+   "blob_id": "d40b77855ce9a21e259fe22c996bd2e33016ca6a"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch007.json": {
+   "size": 590423,
+   "blob_id": "e989af5b868053e2e21ec51efab32693dba0f160"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch008.json": {
+   "size": 406376,
+   "blob_id": "aa6aa7066d685416d4816fe6e8c3472459682232"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261101T150609Z-batch009.json": {
+   "size": 258062,
+   "blob_id": "b06974e6ca70e0ee0abc312b14e4241eeed39c8a"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep2-20261103T232143Z-batch000.json": {
+   "size": 396478,
+   "blob_id": "e1dbaad1ec2191e4ca5fe415dd188a74cfa83c10"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch000.json": {
+   "size": 323453,
+   "blob_id": "b055970410ac702192d2bdbc19081df81534d704"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch001.json": {
+   "size": 147875,
+   "blob_id": "b9f572257961b4b48a0a6b12b85b44882cf0e394"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch002.json": {
+   "size": 145516,
+   "blob_id": "4a8e9ea338b23c61cccc18c86e5bfb2c8b1c3828"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch003.json": {
+   "size": 162013,
+   "blob_id": "9104214f5876347caf64e7ffbb7adf7a0207f1d7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch004.json": {
+   "size": 71441,
+   "blob_id": "839dba06b63ced2f16eabea1334dbce88190d7d7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch005.json": {
+   "size": 97447,
+   "blob_id": "d276d7edd237c89a791e737ea475bb7fdf57821c"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261101T150609Z-batch006.json": {
+   "size": 176946,
+   "blob_id": "894ecaa495e7ac8b42a4ba43a882d693da25d7b9"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch000.json": {
+   "size": 615411,
+   "blob_id": "ce5e36fef6d9419053e002e8cded9e73c6eb1526"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch001.json": {
+   "size": 428447,
+   "blob_id": "4ba5bea5a86aed2a995b0b8f071512c762dcf748"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch002.json": {
+   "size": 487350,
+   "blob_id": "33c0eca45a23975d513ecf4c88ea5bf29cfa4013"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch003.json": {
+   "size": 496212,
+   "blob_id": "929c69edf4522b939e5d804e605775f62ade50f8"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch004.json": {
+   "size": 568051,
+   "blob_id": "09e518ba6881ac707179af28ebce1697773b866a"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch005.json": {
+   "size": 551205,
+   "blob_id": "38a544b73634fe54d9e249fb9ddbb37cff64d556"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch006.json": {
+   "size": 520368,
+   "blob_id": "9e9f130d9fbc4a5c78ed9cffd3066c4f9bc820b3"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep3-20261103T232143Z-batch007.json": {
+   "size": 588630,
+   "blob_id": "67462ad5f351683708ea21be3c179117b522b78a"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch000.json": {
+   "size": 449147,
+   "blob_id": "e14ff258c70e95124aaa528ec7e0892455ccf834"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch001.json": {
+   "size": 580423,
+   "blob_id": "9a9c8a1b38820b7584791e938da775b5b359bac2"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch002.json": {
+   "size": 391239,
+   "blob_id": "1e18a93e09c557726cc936e867ce1e25a27e36ba"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch003.json": {
+   "size": 556849,
+   "blob_id": "c7211c5eac095f4ce5e149bdd6d4da017c12748a"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch004.json": {
+   "size": 427753,
+   "blob_id": "137cc7c0bf0f645cd33618ebdea75803c743aebc"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch005.json": {
+   "size": 444187,
+   "blob_id": "67e5bf9fc380dccea4a93ccdf81b11ebc6cf1b10"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch006.json": {
+   "size": 522575,
+   "blob_id": "bdfcf796a2f1e97fe816aae0fa0ae443fb5ead66"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch007.json": {
+   "size": 658157,
+   "blob_id": "c025ca10805a3572abba4f7b8820a3d09dde928c"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch008.json": {
+   "size": 572115,
+   "blob_id": "897c2d4b7e71b6de2bc034ed6df3d1e59c0a1b74"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c16/cc9fe0b9bd45/rep4-20261103T232143Z-batch009.json": {
+   "size": 611406,
+   "blob_id": "4e4ada221a6cd48ffdfdece68c95d22d18da34b1"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch000.json": {
+   "size": 502326,
+   "blob_id": "b346f348f65fc6cea8f5102b20827cc1223da984"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch001.json": {
+   "size": 360746,
+   "blob_id": "c86b508cfd184aa2df0fad37e6507b81b0695b85"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch002.json": {
+   "size": 345047,
+   "blob_id": "70a73c55b9c809f21d5d50bc9745cac40921a5a7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch003.json": {
+   "size": 391369,
+   "blob_id": "006a4b28f6d3f1772a61ccf6668e29be0ba9a594"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch004.json": {
+   "size": 290091,
+   "blob_id": "5505317c4ea554e45fc8c1eb05aec6f60e6fb6d8"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch005.json": {
+   "size": 287022,
+   "blob_id": "86fb93423d3f7bbb25bf80f02e20177f9fffe025"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch006.json": {
+   "size": 337758,
+   "blob_id": "487449e2eea0bb9bd45e7caf43a0a93f5b05ea2e"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch007.json": {
+   "size": 445624,
+   "blob_id": "48589300665c282a9826df5f42c536628eff6971"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch008.json": {
+   "size": 399846,
+   "blob_id": "dee8a81d0b3ba4d2517e46d0458b2cc3e2530ebb"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep0-20261104T040059Z-batch009.json": {
+   "size": 268521,
+   "blob_id": "f39a54b6df7113493d298d829e6fb5a9526975c4"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch000.json": {
+   "size": 392828,
+   "blob_id": "395ed65c9b19dd738f8b6bb44adc9602a743db02"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch001.json": {
+   "size": 335099,
+   "blob_id": "7c1a97389ac1238bf351b28f817990a6cc2104d3"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch002.json": {
+   "size": 329235,
+   "blob_id": "d5c41f590b24c2717ce60e645c2fa4ca6b189ec5"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch003.json": {
+   "size": 359586,
+   "blob_id": "6ee43bddc0893830a5cc9ef7aa6795860ad40ad3"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch004.json": {
+   "size": 260498,
+   "blob_id": "32a54e5640ad52d824fcd885a7f4938af0b86e8d"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch005.json": {
+   "size": 390253,
+   "blob_id": "2c33293303fc1d905be29063f4e7cf25b8ae2b45"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch006.json": {
+   "size": 168791,
+   "blob_id": "b7d321fc577878e654c217af8621399a69d3ccb2"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch007.json": {
+   "size": 495417,
+   "blob_id": "822eba7afd7fec5a8eeb83dd7b74aa78696c18cf"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch008.json": {
+   "size": 121826,
+   "blob_id": "a3fb672bb80e4f17e12353d1e07ce7afccbda46e"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261104T040059Z-batch009.json": {
+   "size": 102440,
+   "blob_id": "680833f539f3d5b4c299710d0665975392d2bb67"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261105T150445Z-batch000.json": {
+   "size": 306879,
+   "blob_id": "87b24c810e9359b6dfccfe191b8763351d439431"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261105T150445Z-batch001.json": {
+   "size": 425357,
+   "blob_id": "0ddf81bb793f0b5527a565af35d749733f3093fa"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep1-20261105T150445Z-batch002.json": {
+   "size": 222040,
+   "blob_id": "337aeef208f97be2f0721490440ae791cf481b2b"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch000.json": {
+   "size": 408635,
+   "blob_id": "d3f44f888ebc03a954fa9a718cccf20be2590414"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch001.json": {
+   "size": 396580,
+   "blob_id": "719d70514b0fc5d536da145abd7421e8378fdd09"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch002.json": {
+   "size": 308291,
+   "blob_id": "88dc2b855bc3903335b4b380f0b5d8347d134612"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch003.json": {
+   "size": 386516,
+   "blob_id": "430cc3a3a0e4431ceaebc22677f173922dc664c8"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch004.json": {
+   "size": 270422,
+   "blob_id": "2e6bf43c3f479cb9e8c521814764fc9c7f2a4f92"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch005.json": {
+   "size": 327909,
+   "blob_id": "0bac2c2f639c0b07256c300dc84ebc809e112e19"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch006.json": {
+   "size": 395440,
+   "blob_id": "7b307346335cc0e298bf9f6c74115b1b8416c47e"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch007.json": {
+   "size": 376381,
+   "blob_id": "273838b68f9142e9252f0629339c3b01e97b473f"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch008.json": {
+   "size": 414697,
+   "blob_id": "fb3e41b934f4735b49540e81764bfc637a683476"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep2-20261105T150445Z-batch009.json": {
+   "size": 293700,
+   "blob_id": "2248bdd9b7330820435d7fee3427d3420a3169aa"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch000.json": {
+   "size": 361813,
+   "blob_id": "e7531c0ff4b7f7ef652df764514f9cd3f09f686c"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch001.json": {
+   "size": 397710,
+   "blob_id": "6a1da65cc48b32005d0d3ff2631e3462bf27874f"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch002.json": {
+   "size": 306209,
+   "blob_id": "2627b5fb96652b6c47d03de7d0a6b64a8aeeb5cf"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch003.json": {
+   "size": 375015,
+   "blob_id": "d02d8a877e6b17c7f6230ab9986af96844749e42"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch004.json": {
+   "size": 238836,
+   "blob_id": "a322a3c6f26ef74668816ff48e9ccd4302987923"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch005.json": {
+   "size": 276408,
+   "blob_id": "a65bd46a2bd227f5ed76c121d74bebc59434b594"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch006.json": {
+   "size": 391789,
+   "blob_id": "45e42eafcc4617b8a40092851637324433ca3483"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch007.json": {
+   "size": 602563,
+   "blob_id": "efc449cb045f25d4f9642a2c10ee38d41d53afe2"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch008.json": {
+   "size": 483354,
+   "blob_id": "b13001cfb95e5e5480c23656527fed868b214149"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep3-20261105T150445Z-batch009.json": {
+   "size": 291703,
+   "blob_id": "27a033a8e8a80bfb03d23dce4fded5b78b12bf07"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch000.json": {
+   "size": 391375,
+   "blob_id": "768cf273edab968df63eb798bff215edfd5df509"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch001.json": {
+   "size": 340695,
+   "blob_id": "f0a4d42f3523efed5a530c64d4681d27137617b6"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch002.json": {
+   "size": 271066,
+   "blob_id": "9e87cb96c71fc347993b49f2126bb0208484efd4"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch003.json": {
+   "size": 345171,
+   "blob_id": "8e88e0cb60a2ab28c4b60e44bfd7d92455c5659f"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch004.json": {
+   "size": 391978,
+   "blob_id": "910c5aeee62f88b02fafd9c6abbf59b853534d0b"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch005.json": {
+   "size": 388523,
+   "blob_id": "dcf170b95f1dfdac8c2ef8b2bf42b3e935055172"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch006.json": {
+   "size": 411707,
+   "blob_id": "f606bf6e0b2e610678604e4103a1cac99b5501a7"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch007.json": {
+   "size": 399086,
+   "blob_id": "4b26f6a2014628682072508db478400f6e153f87"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch008.json": {
+   "size": 492725,
+   "blob_id": "e3cd2c3e324afaf441e8dece59d3822dbdf33775"
+  },
+  "data/trajectories/free-qwen3b-nemotron35-sft-c80/6c826c8b08fa/rep4-20261105T150445Z-batch009.json": {
+   "size": 294223,
+   "blob_id": "4bf82dc564ab4deb105c5a3ce72d0822eced9db9"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch000.json": {
+   "size": 503543,
+   "blob_id": "5e79f774e9394782f9467428b1e52fadf49f1990"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch001.json": {
+   "size": 554581,
+   "blob_id": "5236fc3dd395dd67d535d025f57b09d9b1120094"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch002.json": {
+   "size": 454379,
+   "blob_id": "e5538637d8e2207d8af2d7794c2418d65fee671c"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch003.json": {
+   "size": 817706,
+   "blob_id": "dec084c355f0e355368bdacdcf73084a522ac6ac"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch004.json": {
+   "size": 511080,
+   "blob_id": "0b51f5d9ac79f6f114389c28a3b02f22aee6b2f3"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch005.json": {
+   "size": 711038,
+   "blob_id": "bafbed246f3c135ea9b21d4833a52d6456765ce6"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch006.json": {
+   "size": 481614,
+   "blob_id": "eca907cf89007d85570cf4ccda3d6312ec858555"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch007.json": {
+   "size": 627613,
+   "blob_id": "fd0378ecf4b7cf5290a263302de78b831b7be75e"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch008.json": {
+   "size": 714499,
+   "blob_id": "b4bbc59a340a8b425a5239356133a28f8dbfd806"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep0-20261019T172741Z-batch009.json": {
+   "size": 633001,
+   "blob_id": "de08f3e331513c772d5645202f13f4eeac4f59de"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch000.json": {
+   "size": 573157,
+   "blob_id": "f0147520af4ced3f2f9789afecb6a777817434c8"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch001.json": {
+   "size": 405007,
+   "blob_id": "76e120833740752fb4ea1880b368dfc74c8f9e79"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch002.json": {
+   "size": 710833,
+   "blob_id": "c1749a1109e7be2ecfb1badcafad5e5da8fba001"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch003.json": {
+   "size": 761608,
+   "blob_id": "90dab08b9e147065ddf5c8178671e93c71834e4c"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch004.json": {
+   "size": 503331,
+   "blob_id": "f7642d0c6ac64e666e14a0d4d64526a048718cc5"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch005.json": {
+   "size": 785301,
+   "blob_id": "f2500f603895ce3f6ff2919112c31f6951f036ca"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch006.json": {
+   "size": 845617,
+   "blob_id": "60f142360a7999ce22a9261885285b560b9ea679"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch007.json": {
+   "size": 646997,
+   "blob_id": "6bece4eb8271eff844b54d9424d293735b4b7d8c"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch008.json": {
+   "size": 727761,
+   "blob_id": "5ed1d38ed0cfa5364c1507ef35677a2acc1c8196"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep1-20261019T172741Z-batch009.json": {
+   "size": 640582,
+   "blob_id": "f8da751c8065d44159ee0befd211f626d220ecbe"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch000.json": {
+   "size": 756609,
+   "blob_id": "f09b6419cd037be6111e51b59e5bd738f2a73f5f"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch001.json": {
+   "size": 549632,
+   "blob_id": "293a94df94a67c5e9457289612325a3f31648e19"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch002.json": {
+   "size": 427105,
+   "blob_id": "c5c22ae9f860ac6115a98cb7a5e69f1862105565"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch003.json": {
+   "size": 518580,
+   "blob_id": "b8a4c88147b7324bb9d42c989648881d5eead9ae"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch004.json": {
+   "size": 510328,
+   "blob_id": "fc7f2ca94472c462dd62f9711dad16f2ff33aee2"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch005.json": {
+   "size": 701013,
+   "blob_id": "9fe4d54142112676734d93bc0e40fb817f6e4e4f"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch006.json": {
+   "size": 501665,
+   "blob_id": "3167a0eeb85c60028f4082d090b360e3bf2135f3"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch007.json": {
+   "size": 575100,
+   "blob_id": "782452c989d34c5cbb58307b11dc7113cc2f4c44"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch008.json": {
+   "size": 728870,
+   "blob_id": "cc146a0f554252696d7af98c4945b8dd28bdaec4"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261019T172741Z-batch009.json": {
+   "size": 657337,
+   "blob_id": "ab0a406ebda7c1863633311770f6af358e499439"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261020T135831Z-batch000.json": {
+   "size": 23489,
+   "blob_id": "3b758812cb4ea3dee7e3e726b25554dde233cf59"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep2-20261020T221344Z-batch000.json": {
+   "size": 23489,
+   "blob_id": "4a8adf7c09ac749e0cf8b9942ac7acf218fe6f92"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch000.json": {
+   "size": 679407,
+   "blob_id": "444ad315f2876841f534c948969b717f06006a18"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch001.json": {
+   "size": 500372,
+   "blob_id": "0c4fdd4d740655652f15a247d4077dbe36ee3287"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch002.json": {
+   "size": 439651,
+   "blob_id": "0c36df3a385702f04f6a18dfee70b77f797ded38"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch003.json": {
+   "size": 439473,
+   "blob_id": "a45c3d9c5245453f2ab84d3e63453bce3183d62f"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch004.json": {
+   "size": 380823,
+   "blob_id": "24d9e3636fa1fee20b2e6ad5acb3dc1f27deb984"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch005.json": {
+   "size": 858735,
+   "blob_id": "9fb956e4c764ac137dc638bc80edc1456a35a8b9"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch006.json": {
+   "size": 558805,
+   "blob_id": "157348756d1d5605cbc901b9003694cb98e6c6fa"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch007.json": {
+   "size": 1367966,
+   "blob_id": "bbe9df42d5da7296aa6b1456cdcb70efec0a0485"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch008.json": {
+   "size": 554617,
+   "blob_id": "ff12f8939f57447f57d4a5b6ae6c3021a0771c3e"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep3-20261019T172741Z-batch009.json": {
+   "size": 667587,
+   "blob_id": "0dc1952d76ecaa1b2bd9df325deb6da595ffdfd4"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261019T172741Z-batch000.json": {
+   "size": 866471,
+   "blob_id": "9b782932f7f54b581414bf512da532c3bc8ad4dd"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261019T172741Z-batch001.json": {
+   "size": 568835,
+   "blob_id": "f7d532e4c256fc12e0021192e201bdce939db286"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261019T172741Z-batch002.json": {
+   "size": 559607,
+   "blob_id": "17141d5c113db4eef9417837a90772660538095c"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261019T172741Z-batch003.json": {
+   "size": 469427,
+   "blob_id": "a099de93ffb7a794e4c11c14f41653300af18745"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261020T135831Z-batch000.json": {
+   "size": 91234,
+   "blob_id": "96794987cab55753a22df07260417ff4cdc2fb91"
+  },
+  "data/trajectories/free-qwen3b-sft-c16/ac7db11a2317/rep4-20261020T221344Z-batch000.json": {
+   "size": 91357,
+   "blob_id": "b0a411214d1e540c382f71b8a8d95bbe4bbb498e"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch000.json": {
+   "size": 415949,
+   "blob_id": "a704d6c594a43ec1bd4a5dc775e9928ff41e38c2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch001.json": {
+   "size": 513418,
+   "blob_id": "ae26bb163e1cbaed74d2c8160fae8cb520829eac"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch002.json": {
+   "size": 332101,
+   "blob_id": "76376526ee8599ec3503a260c22871d5b59a55a2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch003.json": {
+   "size": 266605,
+   "blob_id": "ea88ea78f48e60e68febb785998edebd60d7ad0d"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch004.json": {
+   "size": 449454,
+   "blob_id": "73f3bb9bc502dea260ce70f02f1e5a22620e2cd4"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch005.json": {
+   "size": 296907,
+   "blob_id": "c5ad167ff8d92dc1190060880391d5a6ea93b582"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch006.json": {
+   "size": 388478,
+   "blob_id": "44432fe5fb2545dd6f0fb227566634f83421eb24"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch007.json": {
+   "size": 428194,
+   "blob_id": "9701bb8b10c8883bd1abcb352ed551376186c409"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch008.json": {
+   "size": 547557,
+   "blob_id": "9c9098c8a7d0c23a6697c2b5f1d9a007326d70d3"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep0-20261017T055318Z-batch009.json": {
+   "size": 536204,
+   "blob_id": "735ab35f3188d07233668cdd538721458b4d92f5"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch000.json": {
+   "size": 740294,
+   "blob_id": "404bd323cb1f4e60e70e51469bb22652ae4a16df"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch001.json": {
+   "size": 399098,
+   "blob_id": "f23c825dbb0bb32f03a023b1f846b7c18b8b48dc"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch002.json": {
+   "size": 360977,
+   "blob_id": "62574905c0c21e166be073fe19d32e479b8ace5a"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch003.json": {
+   "size": 373515,
+   "blob_id": "734598b179e37f2f2bdff5fe29d95d0237fd3da2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch004.json": {
+   "size": 384176,
+   "blob_id": "195585834cab19d2e0e4bd2f38278b63b50aace3"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch005.json": {
+   "size": 472825,
+   "blob_id": "01c47cab1f93ea2b18491cc1863512d926011548"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch006.json": {
+   "size": 437174,
+   "blob_id": "4b4266a48bb6142b8311aaac70cb853f5dd9133b"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch007.json": {
+   "size": 385968,
+   "blob_id": "9031d7ffeea70fdfcbd71934a80c9132e8358ba2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch008.json": {
+   "size": 500051,
+   "blob_id": "4e3a3bb9921effd45aea7136541b52f5cb194d9c"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep1-20261017T055318Z-batch009.json": {
+   "size": 638222,
+   "blob_id": "6027b67289efd40c7eab59c3e5d886cd09ac7361"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch000.json": {
+   "size": 644443,
+   "blob_id": "8a85c7eff8208de0f8536a62e630a163ddadc699"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch001.json": {
+   "size": 366845,
+   "blob_id": "92c8b4802e33ffdf5c655509bf83f7dee209c885"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch002.json": {
+   "size": 276438,
+   "blob_id": "46f973bc4fc721df09ddb0a4fc5d38e176b84da5"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch003.json": {
+   "size": 405675,
+   "blob_id": "a09a81e424957525eb1edcfc1cb52a80495b7627"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch004.json": {
+   "size": 423204,
+   "blob_id": "5a4326d908056fe2d57c55f923d5d90fbc8404ad"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch005.json": {
+   "size": 466910,
+   "blob_id": "f2fa345bf69ed68e701c8556a26a24c87055d181"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch006.json": {
+   "size": 434523,
+   "blob_id": "b74fa1e9e6ef80cc50a077b7b6ca07cf8f3fb239"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch007.json": {
+   "size": 319161,
+   "blob_id": "1aa1d7c5c3e71ac9b9aeaa79505dc1cfb2d91e48"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch008.json": {
+   "size": 452273,
+   "blob_id": "6f6de18630461c95129ece0c40a8386dd0f3e351"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep2-20261017T055318Z-batch009.json": {
+   "size": 389793,
+   "blob_id": "c76fb7ca0e55e73087502507e4acb919187d22ce"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch000.json": {
+   "size": 491447,
+   "blob_id": "fad05c9d1227015e4600c77998102fb6948974fb"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch001.json": {
+   "size": 550578,
+   "blob_id": "ccc5eb873f30c9be134b31ea6be7241343f18fac"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch002.json": {
+   "size": 350083,
+   "blob_id": "a5a0fdc9bdcfc456aed5feea300cc541b9b8e525"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch003.json": {
+   "size": 367959,
+   "blob_id": "8604cc1207120bd1b931a912274182585666caf5"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch004.json": {
+   "size": 251352,
+   "blob_id": "82ca278c13bc3ea5a5a864ee08aa5755196ef0ec"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch005.json": {
+   "size": 441579,
+   "blob_id": "ce2489e58c6643198911e34fcfec85a55896830b"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch006.json": {
+   "size": 449044,
+   "blob_id": "ee053d4213cbfeeaf15420c1427aa893e68831a3"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch007.json": {
+   "size": 462275,
+   "blob_id": "ff1dfa166cdcce49834fd924d3a6fa3e46d3ec32"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch008.json": {
+   "size": 457459,
+   "blob_id": "3a301a942f97dd62e3bcfe03501e9bebd192e361"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261017T055318Z-batch009.json": {
+   "size": 338408,
+   "blob_id": "694dd9e63620f97fed428a27fd1471ee09a6c5fb"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep3-20261019T165329Z-batch000.json": {
+   "size": 44115,
+   "blob_id": "237140d8a56edab7cb8148c3e6ee3aaac74a5bea"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch000.json": {
+   "size": 461061,
+   "blob_id": "5beb10ba9a32a178584cf2d14825f0809936408b"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch001.json": {
+   "size": 167871,
+   "blob_id": "793cc5a891a8efafa00da4007d790053e9c7abde"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch002.json": {
+   "size": 227118,
+   "blob_id": "fa418005f5323ac5d672488bbd9777fffb7430e4"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch003.json": {
+   "size": 151170,
+   "blob_id": "e9694dc43e8cd2e368add49b29cc5e3f06ec9917"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch004.json": {
+   "size": 91614,
+   "blob_id": "a01d04a5bba01e98a245384005420fea46351da2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch005.json": {
+   "size": 254702,
+   "blob_id": "df0d6f60465b64916c7e06ac89190beda0bf9967"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch006.json": {
+   "size": 112138,
+   "blob_id": "be87a2a8150969005eaba5b2418804df9a08b669"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch007.json": {
+   "size": 133825,
+   "blob_id": "f58756a1c59bb6554d61b565c0041262b4080a8d"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261017T055318Z-batch008.json": {
+   "size": 153370,
+   "blob_id": "4b29901b28c0a5c3a7d06659b40aabe41b7378c0"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch000.json": {
+   "size": 712508,
+   "blob_id": "c954798ea2d6cbf93c10d4d19ce47ec43ed198c2"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch001.json": {
+   "size": 371290,
+   "blob_id": "5c7f285dfe0dd6be1a6d7ef512c37b88dfed59e4"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch002.json": {
+   "size": 281180,
+   "blob_id": "49b82d96741d1329a5994335e9dd584b16fee07c"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch003.json": {
+   "size": 551406,
+   "blob_id": "3e7c04adb48142820ca9d0fde42dbedf575bda2b"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch004.json": {
+   "size": 335096,
+   "blob_id": "e0722a0cd068a93e801385d421db9677dd9a4c16"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch005.json": {
+   "size": 311432,
+   "blob_id": "94d2e98825f5269a193902014059621396722bbd"
+  },
+  "data/trajectories/free-qwen3b-sft-c80/52d5612d1f6e/rep4-20261019T165329Z-batch006.json": {
+   "size": 293518,
+   "blob_id": "a831c4116bdab384e1420baa962751dd5dd1ed6f"
+  },
+  "results/free-qwen05b-sft-c16.jsonl": {
+   "size": 180180,
+   "blob_id": "c9e8bcabcf2a88f59cc3bd4c77ffbdde2dc49325"
+  },
+  "results/free-qwen05b-sft-c40.jsonl": {
+   "size": 180082,
+   "blob_id": "334d09014d8e60d1ac9c3074919cdde80a7f4710"
+  },
+  "results/free-qwen05b-sft-c80.jsonl": {
+   "size": 180017,
+   "blob_id": "98af3663f6ae3906e77c5cffad86455f728d7491"
+  },
+  "results/free-qwen15b-sft-c16.jsonl": {
+   "size": 173734,
+   "blob_id": "875cec0112c44c37efad4c0a8ee61f0b722750b7"
+  },
+  "results/free-qwen15b-sft-c40.jsonl": {
+   "size": 180101,
+   "blob_id": "cae18f9594cdd9d2b7bbda7e5448c9d6657b5224"
+  },
+  "results/free-qwen15b-sft-c80.jsonl": {
+   "size": 180050,
+   "blob_id": "1d4172704877d8b6943669452c23f3af4acf5b94"
+  },
+  "results/free-qwen3b-nemotron35-sft-c16.jsonl": {
+   "size": 210376,
+   "blob_id": "a4439fae67cdb2e3aa6ab44558a139dea27bc3fa"
+  },
+  "results/free-qwen3b-nemotron35-sft-c80.jsonl": {
+   "size": 211061,
+   "blob_id": "21a695a1aa4da474698e08e4b23c6332d9edf73e"
+  },
+  "results/free-qwen3b-sft-c16.jsonl": {
+   "size": 162537,
+   "blob_id": "df253ef40ad5b3337a114cd438481ec0bc6be911"
+  },
+  "results/free-qwen3b-sft-c80.jsonl": {
+   "size": 186098,
+   "blob_id": "4e2bb34f5aad8b4c575f96960e6fe6cce5290b86"
+  },
+  "results/load-test-qwen15b-sft-c80.json": {
+   "size": 967,
+   "blob_id": "f3d4500ea6bd419fbbbbf9d49af80e7f9e512792"
+  }
+ }
+}

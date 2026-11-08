@@ -4,13 +4,15 @@
 # teacher harvest are yours to launch (division-of-labor.md).
 
 PY := .venv/bin/python
+# Loads .env (API keys, HF token) into a recipe's shell.
+ENV := set -a; [ -f .env ] && . ./.env; set +a;
 # Offline, <2 min, no GPU and no API quota. The other smoke paths need hardware
 # or quota and run where the real job runs: train/generate/eval_free --smoke on
 # Kaggle (notebooks/kaggle_*.ipynb), harvest --smoke against the live API.
-SCRIPTS := eval_forced router_node taxonomy serve_bench
+SCRIPTS := eval_forced router_node taxonomy
 CONFIG ?= configs/qwen05b.yaml
 
-.PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan baseline pull pull-free eval mlx-calibrate free-mlx stage-d-mlx pairs-export pairs-generate pairs forced-mlx score-forced confidence-mlx train-dpo train-grpo serve-bench eval-headline models-list models-pull models-push models-clean clean
+.PHONY: help setup check lint typecheck test smoke preflight prompt-hash phoenix tracking harvest harvest-plan baseline pull pull-free eval mlx-calibrate free-mlx stage-d-mlx pairs-export pairs-generate pairs forced-mlx score-forced confidence-mlx compare-grpo score-f train-dpo train-grpo serve-bench eval-headline models-list models-pull models-push models-clean clean
 
 help:
 	@echo "setup        create .venv and install local deps"
@@ -34,6 +36,8 @@ help:
 	@echo "forced-mlx   forced eval of a Hub adapter on the Mac: MODEL=qwen15b ADAPTER=qwen15b-sft-f25"
 	@echo "score-forced score pulled vLLM completions: MODEL=qwen15b ADAPTER=qwen15b-sft-f25 [CATALOGS=\"16 40 80\"]"
 	@echo "confidence-mlx router confidence check (log-probs + escalation sweep): MODEL=qwen3b CATALOG=80"
+	@echo "compare-grpo G3-2: every GRPO forced file vs its SFT parent, paired CIs per rate and bucket (seconds)"
+	@echo "score-f      Stage F accuracy: score the pulled GPTQ and guided completions, F3 calibration (seconds)"
 	@echo "eval-headline Stage I on the Mac: configs/v3/headline.yaml cells (quota); ARGS=--plan shows progress"
 	@echo "models-list  merged MLX models on the drive (MODEL_STORE) and in models/mlx"
 	@echo "models-pull  copy one merge from the drive before a Mac run: ADAPTER=qwen15b-sft"
@@ -66,6 +70,9 @@ smoke:
 		echo "--- $$s ---"; \
 		$(PY) src/$$s.py --config $(CONFIG) --smoke || exit 1; \
 	done
+	@echo "--- serve_bench (fake backend) ---"
+	$(PY) src/serve_bench.py --config $(CONFIG) --smoke --backend fake --catalog 16 \
+		--prompts data/forced/prompts-c16.jsonl --label smoke --levels 1 2 --per-level 4 --warmup 1 --repeats 2
 	@echo "\nAll smoke paths passed."
 
 preflight:
@@ -75,13 +82,13 @@ phoenix:
 	$(PY) -m phoenix.server.main serve
 
 tracking:
-	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) -m src.check_tracking
+	@$(ENV) $(PY) -m src.check_tracking
 
 harvest-plan:
-	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/harvest.py --config $(CONFIG) --dry-run
+	@$(ENV) $(PY) src/harvest.py --config $(CONFIG) --dry-run
 
 harvest:
-	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/harvest.py --config $(CONFIG)
+	@$(ENV) $(PY) src/harvest.py --config $(CONFIG)
 
 # Simulator epoch: empty = base.yaml's (v1); SIM=gemma -> configs/gemma/<model>.yaml.
 SIM ?=
@@ -91,14 +98,14 @@ cfgpath = configs/$(if $(SIM),$(SIM)/,)$(1).yaml
 # The teacher baseline for one catalog. Any model config works (the harvest is
 # keyed to the teacher, not the student); qwen3b is used for the trajectory dir.
 baseline:
-	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/harvest.py \
+	@$(ENV) caffeinate -is $(PY) src/harvest.py \
 		--config $(call cfgpath,qwen3b) --mode baseline --catalog $(CATALOG)
 
 pull:
-	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/pull_results.py $(ARGS)
+	@$(ENV) $(PY) src/pull_results.py $(ARGS)
 
 pull-free:
-	@set -a; [ -f .env ] && . ./.env; set +a; $(PY) src/pull_results.py --free
+	@$(ENV) $(PY) src/pull_results.py --free
 
 # The README's numbers, recomputed from the logs in results/ (no GPU, no API).
 # Re-running the episodes themselves is the Kaggle notebooks' job.
@@ -120,7 +127,7 @@ MODEL ?= qwen15b
 THRESHOLDS ?= 0.7 0.95 0.5 0.85
 
 mlx-calibrate:
-	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/generate.py \
+	@$(ENV) caffeinate -is $(PY) src/generate.py \
 		--config configs/qwen15b.yaml --adapter $(HF_USER)/tool-router-qwen15b-sft \
 		--prompts data/forced/prompts-c16.jsonl --out results/completions-qwen15b-sft-mlx-c16.jsonl --backend mlx
 	$(PY) src/engine_check.py results/completions-qwen15b-sft-c16.jsonl results/completions-qwen15b-sft-mlx-c16.jsonl || true
@@ -130,7 +137,7 @@ mlx-calibrate:
 
 # One quota day of free-running: each catalog finishes or stops at the day's budget.
 free-mlx:
-	@set -a; [ -f .env ] && . ./.env; set +a; for c in $(CATALOGS); do \
+	@$(ENV) for c in $(CATALOGS); do \
 		echo "===== $(CFG) catalog $$c (mlx) ====="; \
 		caffeinate -is $(PY) src/eval_free.py --config $(call cfgpath,$(CFG)) --catalog $$c \
 			--adapter $(HF_USER)/tool-router-$(CFG)-sft --hub-sync $(HUB_SYNC) \
@@ -138,7 +145,7 @@ free-mlx:
 	done
 
 stage-d-mlx:
-	@set -a; [ -f .env ] && . ./.env; set +a; for t in $(THRESHOLDS); do \
+	@$(ENV) for t in $(THRESHOLDS); do \
 		echo "===== $(MODEL) catalog 80 threshold $$t (mlx) ====="; \
 		caffeinate -is $(PY) src/eval_free.py --config $(call cfgpath,$(MODEL)) --catalog 80 \
 			--adapter $(HF_USER)/tool-router-$(MODEL)-sft --hub-sync $(HUB_SYNC) \
@@ -153,7 +160,7 @@ pairs-export:
 
 # E2-2 on the Mac (lane 2, no quota): greedy completions over the train states.
 pairs-generate:
-	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/generate.py \
+	@$(ENV) caffeinate -is $(PY) src/generate.py \
 		--config configs/$(MODEL).yaml --adapter $(HF_USER)/tool-router-$(MODEL)-sft \
 		--prompts $(PAIRS_DIR)/prompts-train-c16.jsonl \
 		--out results/completions-$(MODEL)-sft-train-c16.jsonl --backend mlx
@@ -167,7 +174,7 @@ pairs:
 #   make forced-mlx MODEL=qwen15b ADAPTER=qwen15b-sft-f25 CATALOGS="16 40 80"
 ADAPTER ?= $(MODEL)-sft
 forced-mlx:
-	@set -a; [ -f .env ] && . ./.env; set +a; for c in $(CATALOGS); do \
+	@$(ENV) for c in $(CATALOGS); do \
 		echo "===== $(ADAPTER) forced c$$c (mlx) ====="; \
 		caffeinate -is $(PY) src/generate.py --config configs/$(MODEL).yaml \
 			--adapter $(HF_USER)/tool-router-$(ADAPTER) --prompts data/forced/prompts-c$$c.jsonl \
@@ -185,12 +192,30 @@ score-forced:
 			--completions results/completions-$(ADAPTER)-c$$c.jsonl --label $(ADAPTER) || exit 1; \
 	done
 
+# G3-2 (seconds, no GPU or quota): paired by-episode bootstrap of each GRPO forced
+# file against its SFT parent; writes results/compare-grpo-vs-sft.json.
+compare-grpo:
+	$(PY) src/compare.py --grpo --markdown
+
+# Stage F on the Mac (seconds): after `make pull` of kaggle_serve_bench's accuracy part.
+# F4: GPTQ forced eval per size; F3: guided forced eval, and the escalation signal's
+# calibration at c80 with and without guided decoding (both vLLM, 3B SFT).
+score-f:
+	@for m in qwen05b qwen15b qwen3b; do $(MAKE) --no-print-directory score-forced MODEL=$$m ADAPTER=$$m-sft-gptq || exit 1; done
+	@$(MAKE) --no-print-directory score-forced MODEL=qwen3b ADAPTER=qwen3b-sft-guided
+	$(PY) src/eval_forced.py --config configs/qwen3b.yaml --catalog 80 --backend file \
+		--completions results/completions-qwen3b-sft-c80-logprobs.jsonl --label qwen3b-sft-lp
+	$(PY) src/escalation_sim.py --config configs/qwen3b.yaml \
+		--completions results/completions-qwen3b-sft-c80-logprobs.jsonl --results results/forced-qwen3b-sft-lp-c80.jsonl
+	$(PY) src/escalation_sim.py --config configs/qwen3b.yaml \
+		--completions results/completions-qwen3b-sft-guided-c80.jsonl --results results/forced-qwen3b-sft-guided-c80.jsonl
+
 # Router confidence check on the Mac (no quota): forced eval with log-probs,
 # then the offline escalation sweep (AUROC: does low confidence find the wrong
 # steps?). 2026-10-22: run for qwen3b before it becomes Stage D's model.
 #   make confidence-mlx MODEL=qwen3b CATALOG=80
 confidence-mlx:
-	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/generate.py \
+	@$(ENV) caffeinate -is $(PY) src/generate.py \
 		--config configs/$(MODEL).yaml --adapter $(HF_USER)/tool-router-$(MODEL)-sft \
 		--prompts data/forced/prompts-c$(CATALOG).jsonl --logprobs --backend mlx \
 		--out results/completions-$(MODEL)-sft-mlx-c$(CATALOG)-logprobs.jsonl
@@ -202,12 +227,12 @@ confidence-mlx:
 		--results results/forced-$(MODEL)-sft-mlx-lp-c$(CATALOG).jsonl
 
 train-dpo train-grpo serve-bench:
-	@echo "$@ runs on Kaggle; see notebooks/ (kaggle_dpo.ipynb, kaggle_grpo.ipynb)."
+	@echo "$@ runs on Kaggle; see notebooks/ (kaggle_dpo.ipynb, kaggle_grpo.ipynb, kaggle_quantize.ipynb, kaggle_serve_bench.ipynb)."
 
 # Stage I on the Mac (quota): the headline cells in configs/v3/headline.yaml, in
 # order, until the day's budget is spent. ARGS=--plan shows progress, no quota.
 eval-headline:
-	@set -a; [ -f .env ] && . ./.env; set +a; caffeinate -is $(PY) src/eval_headline.py \
+	@$(ENV) caffeinate -is $(PY) src/eval_headline.py \
 		--concurrency $(MLX_CONCURRENCY) --hub-sync $(HUB_SYNC) $(ARGS)
 
 # --- merged MLX weights live on the external drive (2026-10-28) ---

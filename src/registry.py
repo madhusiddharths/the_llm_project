@@ -19,6 +19,7 @@ import argparse
 import sys
 from collections.abc import Mapping
 from pathlib import Path
+from typing import overload
 
 import yaml
 
@@ -28,6 +29,20 @@ from src.hashing import hash_file, short
 
 REGISTRY = Path("configs/sft_registry.yaml")
 WEIGHTS = "adapter_model.safetensors"
+
+
+@overload
+def resolve_adapter(adapter: str) -> str: ...
+@overload
+def resolve_adapter(adapter: None) -> None: ...
+def resolve_adapter(adapter: str | None) -> str | None:
+    """A local directory as it is; a Hub repo id becomes a local snapshot of its
+    root adapter files (vLLM's LoRARequest and peft want a path)."""
+    if adapter is None or Path(adapter).exists():
+        return adapter
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download(adapter, allow_patterns=["adapter_*", "*.json"])
 
 
 def load_registry(path: Path = REGISTRY) -> dict[str, dict[str, str]]:

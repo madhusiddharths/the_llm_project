@@ -35,14 +35,22 @@ def server_command(
     max_model_len: int,
     port: int = SERVER_PORT,
     logprobs: bool = False,
+    *,
+    model: str | None = None,
+    adapters: Mapping[str, str] | None = None,
+    prefix_caching: bool | None = None,
 ) -> list[str]:
     """`vllm serve` with VLLMPolicy's engine settings, so the two differ only in
     how requests arrive: one at a time in-process, or several at once over HTTP.
     With `logprobs`, the engine reports raw log-probs, as generate.py --logprobs
-    does in-process (the model's own, before temperature or penalties)."""
+    does in-process (the model's own, before temperature or penalties).
+
+    Stage F (serve_bench.py) also sets `model` (a merged checkpoint in place of
+    the base), `adapters` (several named LoRA modules on one server, in place of
+    `adapter_path`) and `prefix_caching`; left unset, none of them adds a flag."""
     cmd = [
         sys.executable, "-m", "vllm.entrypoints.openai.api_server",
-        "--model", cfg.model.base_model,
+        "--model", model or cfg.model.base_model,
         "--dtype", "half",
         "--max-model-len", str(max_model_len),
         "--gpu-memory-utilization", "0.9",
@@ -51,15 +59,27 @@ def server_command(
     ]  # fmt: skip
     if logprobs:
         cmd += ["--logprobs-mode", "raw_logprobs"]
-    if adapter_path is None:
-        cmd += ["--served-model-name", SERVED_NAME]
-    else:
-        cmd += [
-            "--enable-lora",
-            "--max-lora-rank", str(cfg.train.lora_r),
-            "--lora-modules", f"{SERVED_NAME}={adapter_path}",
-        ]  # fmt: skip
-    return cmd
+    if prefix_caching is not None:
+        cmd += ["--enable-prefix-caching" if prefix_caching else "--no-enable-prefix-caching"]
+    if adapters is None:
+        adapters = {} if adapter_path is None else {SERVED_NAME: adapter_path}
+    if not adapters:
+        return [*cmd, "--served-model-name", SERVED_NAME]
+    cmd += ["--enable-lora", "--max-lora-rank", str(cfg.train.lora_r)]
+    if len(adapters) > 1:
+        cmd += ["--max-loras", str(len(adapters))]  # all of them in one batch (F2 mixes them)
+    return [*cmd, "--lora-modules", *(f"{name}={path}" for name, path in adapters.items())]
+
+
+def stop_server(proc) -> None:
+    """Terminate a server process started from server_command, killing it if it
+    has not exited after 30 s."""
+    if proc.poll() is None:
+        proc.terminate()
+        try:
+            proc.wait(timeout=30)
+        except Exception:
+            proc.kill()
 
 
 def completion_request(cfg, prompt: str, logprobs: bool = False) -> dict[str, Any]:

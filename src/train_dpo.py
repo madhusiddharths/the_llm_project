@@ -450,7 +450,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"{args.config} sets no dpo section; use configs/v2/<model>-dpo.yaml")
 
     from src.config import load_config
-    from src.registry import adapter_sha256, load_registry
+    from src.registry import adapter_sha256, load_registry, resolve_adapter
 
     harvest_fp = load_config(args.config).teacher_fingerprint()
     raw_pairs, manifest = load_pairs(args.data, cfg, harvest_fingerprint=harvest_fp)
@@ -459,11 +459,7 @@ def main(argv: list[str] | None = None) -> int:
     # config itself is pinned by the teacher fingerprint load_pairs just matched.
     assert_pairs_train_only([p["task_id"] for p in raw_pairs], manifest["train_task_ids"])
 
-    parent_dir = Path(args.parent)
-    if not parent_dir.exists():
-        from huggingface_hub import snapshot_download
-
-        parent_dir = Path(snapshot_download(args.parent, allow_patterns=["adapter_*", "*.json"]))
+    parent_dir = Path(resolve_adapter(args.parent))
     from src.invariants import assert_parent_is_sft
 
     parent_sha = adapter_sha256(parent_dir)

@@ -273,16 +273,6 @@ def assert_reward_deterministic(reward_fn, samples: Sequence[object]) -> None:
         raise InvariantViolation(f"reward is not deterministic on samples {diffs[:5]}")
 
 
-def assert_env_keys(required: Sequence[str]) -> None:
-    """Preflight only: credentials present before a long job starts."""
-    missing = [key for key in required if not os.environ.get(key)]
-    if missing:
-        raise InvariantViolation(
-            f"missing environment variables: {', '.join(missing)}. "
-            "Copy .env.example to .env and fill it in."
-        )
-
-
 def check_all(
     cfg: ExperimentConfig,
     *,

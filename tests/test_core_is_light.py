@@ -38,6 +38,9 @@ CORE = [
     "src.make_pairs",
     "src.train_dpo",
     "src.reward",
+    "src.compare",
+    "src.serve_bench",
+    "src.quantize",
 ]
 # tau2 is in here for src.judge: it patches tau2 internals, and the patch is only
 # safe to import from a test or a CI run because that import stays inside install().

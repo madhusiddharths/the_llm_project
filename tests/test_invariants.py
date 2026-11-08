@@ -9,7 +9,6 @@ from src.config import load_config
 from src.invariants import (
     InvariantViolation,
     assert_catalog_hash,
-    assert_env_keys,
     assert_judge_frozen,
     assert_judge_not_teacher,
     assert_no_catalog_in_train_config,
@@ -259,20 +258,6 @@ def test_missing_results_dir_aborts(tmp_path):
 
 def test_writable_results_dir_passes(tmp_path):
     assert assert_results_appendable(tmp_path / "out.jsonl") is None
-
-
-# --- credentials (preflight) -------------------------------------------------
-
-
-def test_missing_env_keys_abort(monkeypatch):
-    monkeypatch.delenv("SOME_ABSENT_KEY", raising=False)
-    with pytest.raises(InvariantViolation, match="SOME_ABSENT_KEY"):
-        assert_env_keys(["SOME_ABSENT_KEY"])
-
-
-def test_present_env_key_passes(monkeypatch):
-    monkeypatch.setenv("SOME_PRESENT_KEY", "x")
-    assert assert_env_keys(["SOME_PRESENT_KEY"]) is None
 
 
 def test_clean_config_passes_every_check():

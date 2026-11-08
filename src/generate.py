@@ -27,6 +27,8 @@ after every chunk, because Kaggle sessions die.
         --out /kaggle/working/completions-qwen15b-zeroshot-c16.jsonl
     # a fine-tuned student: add --adapter <hub repo id or local dir>
     # smoke: add --smoke --limit 3
+    # Stage F (vllm only): --model <quantize.py checkpoint> serves a merged GPTQ
+    # model (F4); --guided-catalog N holds output to prompts.guided_regex (F3)
 """
 
 from __future__ import annotations
@@ -43,12 +45,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.cli import build_parser, resolve
 from src.hashing import hash_file
 from src.prompts import IM_END
+from src.registry import resolve_adapter
 from src.runlog import read_records
+from src.serving import FIRST_TOP_K  # top-k kept at position 0 (logprobs.py, choice 5)
 
 CHUNK = 128  # prompts per vLLM call between appends
-# Candidates kept at the first position (logprobs.py, choice 5). 20 is vLLM's
-# default ceiling (max_logprobs); serving.py asks the server for the same number.
-from src.serving import FIRST_TOP_K  # noqa: E402
 
 DEFAULT_MAX_MODEL_LEN = 32768  # Qwen2.5 context; catalog 80 prompts reach ~20k tokens
 
@@ -69,15 +70,6 @@ def append(out_path: Path, records: Iterable[dict[str, Any]]) -> None:
         for rec in records:
             fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
         fh.flush()
-
-
-def _resolve_adapter(adapter: str | None) -> str | None:
-    """A Hub repo id becomes a local snapshot; vLLM's LoRARequest wants a path."""
-    if adapter is None or Path(adapter).exists():
-        return adapter
-    from huggingface_hub import snapshot_download
-
-    return snapshot_download(adapter, allow_patterns=["adapter_*", "*.json"])
 
 
 def sampled_logprobs(token_ids, per_step) -> list[float]:
@@ -102,15 +94,26 @@ def run_vllm(
     out_path: Path,
     adapter: str | None,
     max_model_len: int,
+    *,
     logprobs: bool = False,
     temperature: float = 0.0,
     samples: int = 1,
+    model: str | None = None,
+    guided: str | None = None,
 ) -> dict[str, Any]:
     import vllm
     from vllm import LLM, SamplingParams
 
+    structured: dict[str, Any] = {}
+    if guided:  # F3: hold the output to one regex (imported only when used)
+        from vllm.sampling_params import StructuredOutputsParams
+
+        structured["structured_outputs"] = StructuredOutputsParams(regex=guided)
+
     llm = LLM(
-        model=cfg.model.base_model,
+        # F4: a merged, quantized checkpoint (quantize.py) instead of the base;
+        # vLLM reads the quantization from its config.
+        model=model or cfg.model.base_model,
         dtype="half",
         max_model_len=max_model_len,
         gpu_memory_utilization=0.9,
@@ -128,6 +131,7 @@ def run_vllm(
         stop=[IM_END],
         seed=cfg.seed,
         logprobs=FIRST_TOP_K if logprobs else None,
+        **structured,
     )
     # E2 augmentation (plan X5): several sampled completions per prompt, each
     # tagged with its sample index. Greedy runs keep the original record shape.
@@ -298,13 +302,31 @@ def main(argv: list[str] | None = None) -> int:
         "--temperature", type=float, default=0.0, help="E2 sampling (vllm only; default greedy)"
     )
     parser.add_argument("--samples", type=int, default=1, help="completions per prompt (vllm only)")
+    parser.add_argument(
+        "--model", help="F4: serve this checkpoint instead of the base (vllm only, no --adapter)"
+    )
+    parser.add_argument(
+        "--guided-catalog",
+        type=int,
+        metavar="N",
+        help="F3: constrain output to prompts.guided_regex over catalog N's tools (vllm only)",
+    )
     args = parser.parse_args(argv)
     if args.out is None:
         parser.error("--out is required")
     if (args.temperature > 0 or args.samples > 1) and args.backend != "vllm":
         parser.error("--temperature/--samples are wired for --backend vllm only")
+    if (args.model or args.guided_catalog) and args.backend != "vllm":
+        parser.error("--model/--guided-catalog are wired for --backend vllm only")
+    if args.model and args.adapter:
+        parser.error("--model is a merged checkpoint; it takes no --adapter")
 
     cfg = resolve(args)
+    guided = None
+    if args.guided_catalog:
+        from src.catalogs import guided_regex_for
+
+        guided = guided_regex_for(cfg, args.guided_catalog)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     rows = pending_prompts(args.prompts, args.out, args.limit)
     print(f"[generate] {cfg.model.base_model} adapter={args.adapter} backend={args.backend}")
@@ -315,7 +337,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.backend == "mlx":
             versions = run_mlx(cfg, rows, args.out, args.adapter, args.max_model_len, args.logprobs)
         else:
-            adapter = _resolve_adapter(args.adapter)
+            adapter = resolve_adapter(args.adapter)
             if args.backend == "vllm":
                 versions = run_vllm(
                     cfg,
@@ -323,9 +345,11 @@ def main(argv: list[str] | None = None) -> int:
                     args.out,
                     adapter,
                     args.max_model_len,
-                    args.logprobs,
-                    args.temperature,
-                    args.samples,
+                    logprobs=args.logprobs,
+                    temperature=args.temperature,
+                    samples=args.samples,
+                    model=args.model,
+                    guided=guided,
                 )
             else:
                 versions = run_hf(cfg, rows, args.out, adapter, args.max_model_len, args.logprobs)
@@ -333,6 +357,8 @@ def main(argv: list[str] | None = None) -> int:
     meta = {
         "base_model": cfg.model.base_model,
         "adapter": args.adapter,
+        "model": args.model,
+        "guided_catalog": args.guided_catalog,
         "backend": args.backend,
         "versions": versions,
         "sampling": {

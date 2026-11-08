@@ -64,25 +64,38 @@ def post_route(url: str, prompt: str, timeout_s: float = 600.0) -> dict[str, Any
         return json.loads(r.read())
 
 
+def fan_out(
+    fn: Callable[[Any], Any], items: Sequence[Any], concurrency: int
+) -> tuple[list[Any], float]:
+    """`fn` over every item, `concurrency` at a time. A call that raises gives
+    None in its slot, so one bad request ends nothing. Returns the results in
+    item order and the wall-clock seconds."""
+
+    def one(item: Any) -> Any:
+        try:
+            return fn(item)
+        except Exception:
+            return None
+
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        results = list(pool.map(one, items))
+    return results, time.perf_counter() - started
+
+
 def run_level(
     send: Callable[[str], dict[str, Any]], prompts: Sequence[str], concurrency: int
 ) -> dict[str, Any]:
     """Every prompt once, `concurrency` in flight. Latency is client-side, so it
     includes queueing at the server: what a caller of the router would see."""
 
-    def one(prompt: str) -> tuple[float | None, dict[str, Any] | None]:
+    def timed(prompt: str) -> tuple[float, dict[str, Any]]:
         started = time.perf_counter()
-        try:
-            body = send(prompt)
-        except Exception:
-            return None, None
+        body = send(prompt)
         return (time.perf_counter() - started) * 1000, body
 
-    started = time.perf_counter()
-    with ThreadPoolExecutor(max_workers=concurrency) as pool:
-        results = list(pool.map(one, prompts))
-    wall = time.perf_counter() - started
-    ok = [(ms, b) for ms, b in results if ms is not None and b is not None]
+    results, wall = fan_out(timed, prompts, concurrency)
+    ok = [r for r in results if r is not None and r[1] is not None]
     if not ok:
         raise RuntimeError(f"every request failed at concurrency {concurrency}")
     out = summarize([ms for ms, _ in ok], wall, len(results) - len(ok))

@@ -213,7 +213,8 @@ class GRPOConfig(_Frozen):
 
 
 class ServingConfig(_Frozen):
-    """Stage F (plan X6). Schema only until serve_bench.py lands."""
+    """Stage F (plan X6). Schema only: no script reads it. serve_bench.py takes
+    the same settings as CLI flags and records them in each report."""
 
     vllm_version: str
     concurrency_levels: list[int]

@@ -8,12 +8,15 @@ The properties that matter most are the ones that would fail silently:
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from src.prompts import (
     _GOLDEN,
     IM_END,
     TOOL_FORMATS,
+    guided_regex,
     parse_completion,
     render_action,
     render_tool,
@@ -198,3 +201,18 @@ def test_unknown_tool_format_is_refused():
     assert TOOL_FORMATS == ("compact", "json")
     with pytest.raises(ValueError, match="tool_format"):
         serialize_state(**_golden(), tool_format="yaml")
+
+
+def test_guided_regex_admits_catalog_calls_and_replies_only():
+    pattern = re.compile(guided_regex(["get_order_details", "cancel_pending_order"]))
+    two = Action(
+        "tool_call",
+        (
+            ToolCall("get_order_details", {"order_id": "#W1", "nested": {"a": [1, 2]}}),
+            ToolCall("cancel_pending_order", {"reason": "no longer needed"}),
+        ),
+    )
+    assert pattern.fullmatch(render_action(two))
+    assert not pattern.fullmatch(render_action(Action("tool_call", (ToolCall("calculate", {}),))))
+    assert pattern.fullmatch("Sure.\nWhat is your zip code?")
+    assert not pattern.fullmatch("")
