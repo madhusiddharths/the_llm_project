@@ -35,6 +35,7 @@ htmlcov/
 secrets.yaml
 .netrc
 .huggingface/
+.cache/
 .wandb-api-key
 
 # --- harvested data ---------------------------------------------------------
